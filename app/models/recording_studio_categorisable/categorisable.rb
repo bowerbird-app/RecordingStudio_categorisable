@@ -38,7 +38,7 @@ module RecordingStudioCategorisable
       return false unless recording && category_item.is_a?(CategoryItem) && category_item.recording
       return true if has_category?(category_item)
 
-      recording.record(CategoryAssignment, actor: actor, parent_recording: recording) do |assignment|
+      recording.record(CategoryAssignment.new, actor: actor, parent_recording: recording) do |assignment|
         assignment.category_item_recording_id = category_item.recording.id
       end
       true
