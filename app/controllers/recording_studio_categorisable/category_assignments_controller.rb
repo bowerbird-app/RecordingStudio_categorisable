@@ -6,42 +6,51 @@ module RecordingStudioCategorisable
     before_action :set_category_assignment_recording, only: [:destroy]
 
     def index
-      @category_assignment_recordings = @target_recording.children.where(
-        recordable_type: "RecordingStudioCategorisable::CategoryAssignment"
-      ).includes(:recordable)
+      return unless authorize_action!(@target_recording, role: :view)
+
+      @category_assignment_recordings = @target_recording.child_recordings
+                                                         .where(recordable_type: CategoryAssignment.name, trashed_at: nil)
+                                                         .includes(:recordable)
     end
 
     def new
+      return unless authorize_action!(@target_recording, role: :admin)
+
       @category_assignment = CategoryAssignment.new
-      @available_category_items = RecordingStudio::Recording.where(
-        recordable_type: "RecordingStudioCategorisable::CategoryItem"
-      ).includes(:recordable).order("recordables.label ASC")
+      @available_category_items = available_category_items
     end
 
     def create
-      category_item_recording = RecordingStudio::Recording.find(
-        category_assignment_params[:category_item_recording_id]
-      )
+      return unless authorize_action!(@target_recording, role: :admin)
 
-      result = @target_recording.record(CategoryAssignment) do |recordable|
-        recordable.category_item_recording = category_item_recording
-      end
-
-      if result.success?
-        redirect_to target_category_assignments_path, notice: "Category assigned successfully."
-      else
-        @category_assignment = CategoryAssignment.new
-        @available_category_items = RecordingStudio::Recording.where(
-          recordable_type: "RecordingStudioCategorisable::CategoryItem"
-        ).includes(:recordable).order("recordables.label ASC")
+      @category_assignment = CategoryAssignment.new(category_assignment_params)
+      if @category_assignment.invalid?
+        @available_category_items = available_category_items
         render :new, status: :unprocessable_entity
+        return
       end
+
+      @target_recording.record(
+        @category_assignment,
+        actor: current_recording_studio_actor,
+        parent_recording: @target_recording
+      )
+      redirect_to target_recording_category_assignments_path(@target_recording),
+                  notice: "Category assigned successfully."
+    rescue ActiveRecord::RecordInvalid
+      @available_category_items = available_category_items
+      render :new, status: :unprocessable_entity
     end
 
     def destroy
-      authorize_action!(@category_assignment_recording)
-      @category_assignment_recording.trash!
-      redirect_to target_category_assignments_path, notice: "Category assignment removed successfully."
+      return unless authorize_action!(@target_recording, role: :admin)
+
+      (@category_assignment_recording.root_recording || @category_assignment_recording).trash(
+        @category_assignment_recording,
+        actor: current_recording_studio_actor
+      )
+      redirect_to target_recording_category_assignments_path(@target_recording),
+                  notice: "Category assignment removed successfully."
     end
 
     private
@@ -55,13 +64,15 @@ module RecordingStudioCategorisable
     end
 
     def category_assignment_params
-      params.require(:category_assignment).permit(:category_item_recording_id)
+      params.require(:category_assignment).permit(:category_item_recording_id, metadata: {})
     end
 
-    def target_category_assignments_path
-      # This would be dynamically constructed based on the target recordable type
-      # For now, return a generic path
-      recording_studio_categorisable.root_path
+    def available_category_items
+      RecordingStudio::Recording.where(recordable_type: CategoryItem.name, trashed_at: nil)
+                                .includes(:recordable)
+                                .sort_by do |recording|
+        [recording.recordable&.category_group&.label.to_s.downcase, recording.recordable&.label.to_s.downcase]
+      end
     end
   end
 end

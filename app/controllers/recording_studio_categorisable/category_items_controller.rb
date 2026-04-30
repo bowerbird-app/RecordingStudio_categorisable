@@ -3,16 +3,10 @@
 module RecordingStudioCategorisable
   class CategoryItemsController < ApplicationController
     before_action :set_category_group_recording
-    before_action :set_category_item_recording, only: [:show, :edit, :update, :destroy]
-
-    def index
-      @category_item_recordings = @category_group_recording.children.where(
-        recordable_type: "RecordingStudioCategorisable::CategoryItem"
-      ).includes(:recordable).order("recordables.label ASC")
-    end
+    before_action :set_category_item_recording, only: %i[show edit update destroy]
 
     def show
-      authorize_action!(@category_item_recording)
+      return unless authorize_action!(@category_item_recording, role: :view)
     end
 
     def new
@@ -20,41 +14,63 @@ module RecordingStudioCategorisable
     end
 
     def create
-      result = @category_group_recording.record(CategoryItem) do |recordable|
-        recordable.label = category_item_params[:label]
+      return unless authorize_action!(@category_group_recording, role: :admin)
+
+      @category_item = CategoryItem.new(category_item_params)
+      if @category_item.invalid?
+        render :new, status: :unprocessable_entity
+        return
       end
 
-      if result.success?
-        redirect_to category_group_category_item_path(@category_group_recording, result.recording), 
-                    notice: "Category item created successfully."
-      else
-        @category_item = CategoryItem.new(category_item_params)
-        render :new, status: :unprocessable_entity
-      end
+      created_recording = @category_group_recording.record(
+        @category_item,
+        actor: current_recording_studio_actor,
+        parent_recording: @category_group_recording
+      )
+      redirect_to category_group_category_item_path(@category_group_recording, created_recording),
+                  notice: "Category item created successfully."
+    rescue ActiveRecord::RecordInvalid
+      render :new, status: :unprocessable_entity
     end
 
     def edit
-      authorize_action!(@category_item_recording)
+      return unless authorize_action!(@category_item_recording, role: :admin)
+
       @category_item = @category_item_recording.recordable
     end
 
     def update
-      authorize_action!(@category_item_recording)
-      
-      if @category_item_recording.recordable.update(category_item_params)
-        redirect_to category_group_category_item_path(@category_group_recording, @category_item_recording), 
-                    notice: "Category item updated successfully."
-      else
-        @category_item = @category_item_recording.recordable
+      return unless authorize_action!(@category_item_recording, role: :admin)
+
+      @category_item = @category_item_recording.recordable.dup
+      @category_item.assign_attributes(category_item_params)
+      if @category_item.invalid?
         render :edit, status: :unprocessable_entity
+        return
       end
+
+      revised_recording = (@category_item_recording.root_recording || @category_item_recording).revise(
+        @category_item_recording,
+        actor: current_recording_studio_actor
+      ) do |recordable|
+        recordable.assign_attributes(category_item_params)
+      end
+
+      redirect_to category_group_category_item_path(@category_group_recording, revised_recording),
+                  notice: "Category item updated successfully."
+    rescue ActiveRecord::RecordInvalid
+      @category_item ||= @category_item_recording.recordable
+      render :edit, status: :unprocessable_entity
     end
 
     def destroy
-      authorize_action!(@category_item_recording)
-      @category_item_recording.trash!
-      redirect_to category_group_category_items_path(@category_group_recording), 
-                  notice: "Category item deleted successfully."
+      return unless authorize_action!(@category_item_recording, role: :admin)
+
+      (@category_item_recording.root_recording || @category_item_recording).trash(
+        @category_item_recording,
+        actor: current_recording_studio_actor
+      )
+      redirect_to category_group_path(@category_group_recording), notice: "Category item deleted successfully."
     end
 
     private
@@ -68,7 +84,7 @@ module RecordingStudioCategorisable
     end
 
     def category_item_params
-      params.require(:category_item).permit(:label)
+      params.require(:category_item).permit(:label, :description, :color, :position, metadata: {})
     end
   end
 end

@@ -4,6 +4,7 @@ RecordingStudio.configure do |config|
   # Registered delegated_type recordables (strings or classes)
   config.recordable_types = [
     "Workspace",
+    "Project",
     "RecordingStudioCategorisable::CategoryGroup",
     "RecordingStudioCategorisable::CategoryItem",
     "RecordingStudioCategorisable::CategoryAssignment"

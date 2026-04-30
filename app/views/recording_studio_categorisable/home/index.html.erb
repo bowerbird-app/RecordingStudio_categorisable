@@ -37,7 +37,7 @@
                               class: "hover:text-blue-600" %>
                 </h4>
                 <p class="text-sm text-gray-500 mt-1">
-                  <%= pluralize(group_recording.children.where(recordable_type: "RecordingStudioCategorisable::CategoryItem").count, "item") %>
+                  <%= pluralize(group_recording.child_recordings.where(recordable_type: RecordingStudioCategorisable::CategoryItem.name, trashed_at: nil).count, "item") %>
                 </p>
               </div>
               <div class="flex gap-2">

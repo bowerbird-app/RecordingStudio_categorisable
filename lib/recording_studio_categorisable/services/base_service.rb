@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module GemTemplate
+module RecordingStudioCategorisable
   module Services
     # Base class for service objects following the Command pattern.
     #
@@ -124,7 +124,7 @@ module GemTemplate
       def run_before_hooks
         return unless hooks_enabled?
 
-        GemTemplate::Hooks.run(:before_service, self.class, service_args)
+        RecordingStudioCategorisable::Hooks.run(:before_service, self.class, service_args)
       end
 
       # Run after_service hooks
@@ -133,27 +133,27 @@ module GemTemplate
       def run_after_hooks(result)
         return unless hooks_enabled?
 
-        GemTemplate::Hooks.run(:after_service, self.class, result)
+        RecordingStudioCategorisable::Hooks.run(:after_service, self.class, result)
       end
 
       # Run perform wrapped in around_service hooks
       #
       # @return [Result] The service result
       def run_with_around_hooks
-        if hooks_enabled? && GemTemplate.configuration.hooks.registered?(:around_service)
-          GemTemplate::Hooks.run_around(:around_service, self) { perform }
+        if hooks_enabled? && RecordingStudioCategorisable.configuration.hooks.registered?(:around_service)
+          RecordingStudioCategorisable::Hooks.run_around(:around_service, self) { perform }
         else
           perform
         end
       end
 
-      # Check if hooks are enabled (GemTemplate is loaded and configured)
+      # Check if hooks are enabled (RecordingStudioCategorisable is loaded and configured)
       #
       # @return [Boolean]
       def hooks_enabled?
-        defined?(GemTemplate) &&
-          GemTemplate.respond_to?(:configuration) &&
-          GemTemplate.configuration.respond_to?(:hooks)
+        defined?(RecordingStudioCategorisable) &&
+          RecordingStudioCategorisable.respond_to?(:configuration) &&
+          RecordingStudioCategorisable.configuration.respond_to?(:hooks)
       end
 
       # Get service arguments for hook callbacks

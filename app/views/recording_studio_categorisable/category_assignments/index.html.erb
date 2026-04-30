@@ -1,0 +1,38 @@
+<div class="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: @target_recording.title,
+    subtitle: "Assigned categories",
+    variant: :h1
+  ) %>
+
+  <div class="flex gap-2">
+    <%= link_to new_target_recording_category_assignment_path(@target_recording), class: "inline-flex" do %>
+      <%= render FlatPack::Button::Component.new(text: "Assign category", style: :primary, size: :md) %>
+    <% end %>
+  </div>
+
+  <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
+    <% card.body do %>
+      <% if @category_assignment_recordings.any? %>
+        <div class="divide-y divide-(--surface-border-color)">
+          <% @category_assignment_recordings.each do |assignment_recording| %>
+            <% assignment = assignment_recording.recordable %>
+            <% next unless assignment %>
+            <% item = assignment.category_item %>
+            <div class="flex items-center justify-between py-4">
+              <div>
+                <p class="font-medium"><%= item&.label || "Unknown category" %></p>
+                <p class="text-sm text-(--surface-muted-content-color)"><%= item&.category_group&.label || "Unknown group" %></p>
+              </div>
+              <%= button_to target_recording_category_assignment_path(@target_recording, assignment_recording), method: :delete, data: { turbo_confirm: "Remove this category assignment?" }, class: "inline-flex" do %>
+                <%= render FlatPack::Button::Component.new(text: "Remove", style: :danger, size: :sm) %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-(--surface-muted-content-color)">No categories are assigned to this recording yet.</p>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

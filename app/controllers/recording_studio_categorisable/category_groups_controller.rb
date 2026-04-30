@@ -3,19 +3,24 @@
 module RecordingStudioCategorisable
   class CategoryGroupsController < ApplicationController
     before_action :set_parent_recording
-    before_action :set_category_group_recording, only: [:show, :edit, :update, :destroy]
+    before_action :set_category_group_recording, only: %i[show edit update destroy]
 
     def index
-      @category_group_recordings = RecordingStudio::Recording.where(
-        recordable_type: "RecordingStudioCategorisable::CategoryGroup"
-      ).includes(:recordable).order("recordables.label ASC")
+      return unless authorize_action!(@parent_recording, role: :view)
+
+      @category_group_recordings = @parent_recording.child_recordings
+                                                  .where(recordable_type: CategoryGroup.name, trashed_at: nil)
+                                                  .includes(:recordable)
+                                                  .sort_by { |recording| recording.recordable&.label.to_s.downcase }
     end
 
     def show
-      authorize_action!(@category_group_recording)
-      @category_items = @category_group_recording.children.where(
-        recordable_type: "RecordingStudioCategorisable::CategoryItem"
-      ).includes(:recordable).order("recordables.label ASC")
+      return unless authorize_action!(@category_group_recording, role: :view)
+
+      @category_items = @category_group_recording.child_recordings
+                                                 .where(recordable_type: CategoryItem.name, trashed_at: nil)
+                                                 .includes(:recordable)
+                                                 .sort_by { |recording| recording.recordable&.label.to_s.downcase }
     end
 
     def new
@@ -23,44 +28,70 @@ module RecordingStudioCategorisable
     end
 
     def create
-      result = @parent_recording.record(CategoryGroup) do |recordable|
-        recordable.label = category_group_params[:label]
+      return unless authorize_action!(@parent_recording, role: :admin)
+
+      @category_group = CategoryGroup.new(category_group_params)
+      if @category_group.invalid?
+        render :new, status: :unprocessable_entity
+        return
       end
 
-      if result.success?
-        redirect_to category_group_path(result.recording), notice: "Category group created successfully."
-      else
-        @category_group = CategoryGroup.new(category_group_params)
-        render :new, status: :unprocessable_entity
-      end
+      created_recording = @parent_recording.record(
+        @category_group,
+        actor: current_recording_studio_actor,
+        parent_recording: @parent_recording
+      )
+      redirect_to category_group_path(created_recording), notice: "Category group created successfully."
+    rescue ActiveRecord::RecordInvalid
+      render :new, status: :unprocessable_entity
     end
 
     def edit
-      authorize_action!(@category_group_recording)
+      return unless authorize_action!(@category_group_recording, role: :admin)
+
       @category_group = @category_group_recording.recordable
     end
 
     def update
-      authorize_action!(@category_group_recording)
-      
-      if @category_group_recording.recordable.update(category_group_params)
-        redirect_to category_group_path(@category_group_recording), notice: "Category group updated successfully."
-      else
-        @category_group = @category_group_recording.recordable
+      return unless authorize_action!(@category_group_recording, role: :admin)
+
+      @category_group = @category_group_recording.recordable.dup
+      @category_group.assign_attributes(category_group_params)
+      if @category_group.invalid?
         render :edit, status: :unprocessable_entity
+        return
       end
+
+      revised_recording = (@category_group_recording.root_recording || @category_group_recording).revise(
+        @category_group_recording,
+        actor: current_recording_studio_actor
+      ) do |recordable|
+        recordable.assign_attributes(category_group_params)
+      end
+
+      redirect_to category_group_path(revised_recording), notice: "Category group updated successfully."
+    rescue ActiveRecord::RecordInvalid
+      @category_group ||= @category_group_recording.recordable
+      render :edit, status: :unprocessable_entity
     end
 
     def destroy
-      authorize_action!(@category_group_recording)
-      @category_group_recording.trash!
+      return unless authorize_action!(@category_group_recording, role: :admin)
+
+      (@category_group_recording.root_recording || @category_group_recording).trash(
+        @category_group_recording,
+        actor: current_recording_studio_actor
+      )
       redirect_to category_groups_path, notice: "Category group deleted successfully."
     end
 
     private
 
     def set_parent_recording
-      @parent_recording = current_workspace_recording
+      @parent_recording = current_root_recording
+      return if @parent_recording
+
+      redirect_to fallback_root_path, alert: "No root recording is available for categories."
     end
 
     def set_category_group_recording
@@ -68,7 +99,7 @@ module RecordingStudioCategorisable
     end
 
     def category_group_params
-      params.require(:category_group).permit(:label)
+      params.require(:category_group).permit(:label, :description, :position, metadata: {})
     end
   end
 end

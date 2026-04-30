@@ -1,0 +1,34 @@
+<div class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: @category_item_recording.recordable.label,
+    subtitle: @category_group_recording.recordable.label,
+    variant: :h1
+  ) %>
+
+  <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
+    <% card.body do %>
+      <dl class="space-y-3 text-sm">
+        <div>
+          <dt class="text-(--surface-muted-content-color)">Description</dt>
+          <dd><%= @category_item_recording.recordable.description.presence || "Not set" %></dd>
+        </div>
+        <div>
+          <dt class="text-(--surface-muted-content-color)">Created</dt>
+          <dd><%= @category_item_recording.created_at %></dd>
+        </div>
+      </dl>
+    <% end %>
+  <% end %>
+
+  <div class="flex gap-2">
+    <%= link_to edit_category_group_category_item_path(@category_group_recording, @category_item_recording), class: "inline-flex" do %>
+      <%= render FlatPack::Button::Component.new(text: "Edit", style: :secondary, size: :md) %>
+    <% end %>
+    <%= button_to category_group_category_item_path(@category_group_recording, @category_item_recording), method: :delete, data: { turbo_confirm: "Delete this category item?" }, class: "inline-flex" do %>
+      <%= render FlatPack::Button::Component.new(text: "Delete", style: :danger, size: :md) %>
+    <% end %>
+    <%= link_to category_group_path(@category_group_recording), class: "inline-flex" do %>
+      <%= render FlatPack::Button::Component.new(text: "Back to group", style: :ghost, size: :md) %>
+    <% end %>
+  </div>
+</div>

@@ -2,22 +2,17 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-# Create the admin user
 user = User.find_or_create_by!(email: "admin@admin.com") do |u|
   u.password = "Password"
   u.password_confirmation = "Password"
 end
 
-# Create the workspace recordable
 workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
-
-# Create the root recording
 root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
   recordable: workspace,
   parent_recording_id: nil
 )
 
-# Grant root-level admin access to the admin user
 Current.actor = user
 access = RecordingStudio::Access.find_or_create_by!(actor: user, role: :admin)
 RecordingStudio::Recording.unscoped.find_or_create_by!(
@@ -29,80 +24,80 @@ RecordingStudio::Recording.unscoped.find_or_create_by!(
 puts "Seeded: admin@admin.com / Password"
 puts "Seeded: Workspace '#{workspace.name}' with root recording ##{root_recording.id}"
 
-# Seed category groups and items
 puts "\nSeeding category data..."
 
-# Project Status category group
-status_result = root_recording.record(RecordingStudioCategorisable::CategoryGroup) do |group|
-  group.label = "Project Status"
+def ensure_category_group(root_recording, label)
+  existing = root_recording.child_recordings.includes(:recordable).find do |recording|
+    recording.recordable_type == RecordingStudioCategorisable::CategoryGroup.name &&
+      recording.recordable&.label == label
+  end
+  return existing if existing
+
+  root_recording.record(
+    RecordingStudioCategorisable::CategoryGroup.new(label: label),
+    actor: Current.actor,
+    parent_recording: root_recording
+  )
 end
 
-if status_result.success?
-  status_recording = status_result.recording
-  puts "Created category group: Project Status"
-  
-  # Add status items
-  ["Planning", "Active", "On Hold", "Completed", "Cancelled"].each do |label|
-    item_result = status_recording.record(RecordingStudioCategorisable::CategoryItem) do |item|
-      item.label = label
-    end
-    puts "  - Created category item: #{label}" if item_result.success?
+def ensure_category_item(group_recording, label)
+  existing = group_recording.child_recordings.includes(:recordable).find do |recording|
+    recording.recordable_type == RecordingStudioCategorisable::CategoryItem.name &&
+      recording.recordable&.label == label
+  end
+  return existing if existing
+
+  group_recording.record(
+    RecordingStudioCategorisable::CategoryItem.new(label: label),
+    actor: Current.actor,
+    parent_recording: group_recording
+  )
+end
+
+groups = {
+  "Project Status" => ["Planning", "Active", "On Hold", "Completed", "Cancelled"],
+  "Priority" => ["Low", "Medium", "High", "Critical"],
+  "Team" => ["Engineering", "Design", "Product", "Marketing", "Sales"]
+}
+item_recordings = {}
+
+groups.each do |group_label, item_labels|
+  group_recording = ensure_category_group(root_recording, group_label)
+  puts "Created category group: #{group_label}"
+
+  item_labels.each do |item_label|
+    item_recording = ensure_category_item(group_recording, item_label)
+    item_recordings[[group_label, item_label]] = item_recording
+    puts "  - Created category item: #{item_label}"
   end
 end
 
-# Priority category group
-priority_result = root_recording.record(RecordingStudioCategorisable::CategoryGroup) do |group|
-  group.label = "Priority"
+project = Project.find_or_create_by!(name: "Launch mobile studio") do |record|
+  record.description = "Demo project used to showcase category assignments"
 end
+project_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
+  recordable: project,
+  parent_recording_id: root_recording.id,
+  root_recording_id: root_recording.id
+)
 
-if priority_result.success?
-  priority_recording = priority_result.recording
-  puts "Created category group: Priority"
-  
-  # Add priority items
-  ["Low", "Medium", "High", "Critical"].each do |label|
-    item_result = priority_recording.record(RecordingStudioCategorisable::CategoryItem) do |item|
-      item.label = label
-    end
-    puts "  - Created category item: #{label}" if item_result.success?
+[
+  item_recordings[["Project Status", "Active"]],
+  item_recordings[["Priority", "High"]],
+  item_recordings[["Team", "Engineering"]]
+].compact.each do |category_item_recording|
+  next if project_recording.child_recordings.includes(:recordable).any? do |recording|
+    recording.recordable_type == RecordingStudioCategorisable::CategoryAssignment.name &&
+      recording.recordable&.category_item_recording_id == category_item_recording.id
   end
-end
 
-# Team category group
-team_result = root_recording.record(RecordingStudioCategorisable::CategoryGroup) do |group|
-  group.label = "Team"
-end
-
-if team_result.success?
-  team_recording = team_result.recording
-  puts "Created category group: Team"
-  
-  # Add team items
-  ["Engineering", "Design", "Product", "Marketing", "Sales"].each do |label|
-    item_result = team_recording.record(RecordingStudioCategorisable::CategoryItem) do |item|
-      item.label = label
-    end
-    puts "  - Created category item: #{label}" if item_result.success?
-  end
-end
-
-# Tags category group
-tags_result = root_recording.record(RecordingStudioCategorisable::CategoryGroup) do |group|
-  group.label = "Tags"
-end
-
-if tags_result.success?
-  tags_recording = tags_result.recording
-  puts "Created category group: Tags"
-  
-  # Add tag items
-  ["Bug", "Feature", "Enhancement", "Documentation", "Research"].each do |label|
-    item_result = tags_recording.record(RecordingStudioCategorisable::CategoryItem) do |item|
-      item.label = label
-    end
-    puts "  - Created category item: #{label}" if item_result.success?
-  end
+  project_recording.record(
+    RecordingStudioCategorisable::CategoryAssignment.new(category_item_recording_id: category_item_recording.id),
+    actor: Current.actor,
+    parent_recording: project_recording
+  )
 end
 
 puts "\nCategory seeding complete!"
+puts "Seeded project '#{project.name}' with category assignments."
 puts "Visit /categories to explore the category management interface."
