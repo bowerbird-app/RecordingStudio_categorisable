@@ -26,7 +26,7 @@ puts "Seeded: Workspace '#{workspace.name}' with root recording ##{root_recordin
 
 puts "\nSeeding category data..."
 
-def ensure_category_group(root_recording, label)
+def find_or_create_category_group(root_recording, label)
   existing = root_recording.child_recordings.includes(:recordable).find do |recording|
     recording.recordable_type == RecordingStudioCategorisable::CategoryGroup.name &&
       recording.recordable&.label == label
@@ -40,7 +40,7 @@ def ensure_category_group(root_recording, label)
   )
 end
 
-def ensure_category_item(group_recording, label)
+def find_or_create_category_item(group_recording, label)
   existing = group_recording.child_recordings.includes(:recordable).find do |recording|
     recording.recordable_type == RecordingStudioCategorisable::CategoryItem.name &&
       recording.recordable&.label == label
@@ -62,11 +62,11 @@ groups = {
 item_recordings = {}
 
 groups.each do |group_label, item_labels|
-  group_recording = ensure_category_group(root_recording, group_label)
+  group_recording = find_or_create_category_group(root_recording, group_label)
   puts "Created category group: #{group_label}"
 
   item_labels.each do |item_label|
-    item_recording = ensure_category_item(group_recording, item_label)
+    item_recording = find_or_create_category_item(group_recording, item_label)
     item_recordings[[group_label, item_label]] = item_recording
     puts "  - Created category item: #{item_label}"
   end
