@@ -1,0 +1,5 @@
+development:
+  # Development-specific configuration for RecordingStudioCategorisable
+
+production:
+  # Production-specific configuration for RecordingStudioCategorisable
