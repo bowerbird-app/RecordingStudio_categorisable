@@ -2,7 +2,12 @@
 
 RecordingStudio.configure do |config|
   # Registered delegated_type recordables (strings or classes)
-  config.recordable_types = [ "Workspace" ]
+  config.recordable_types = [
+    "Workspace",
+    "RecordingStudioCategorisable::CategoryGroup",
+    "RecordingStudioCategorisable::CategoryItem",
+    "RecordingStudioCategorisable::CategoryAssignment"
+  ]
 
   # Actor resolver for events when no actor is explicitly supplied
   config.actor = -> { Current.actor }
