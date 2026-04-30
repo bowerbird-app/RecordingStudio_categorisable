@@ -21,7 +21,7 @@
           <%= form.select :category_item_recording_id,
                           options_for_select(@available_category_items.map { |recording| ["#{recording.recordable&.category_group&.label} / #{recording.recordable&.label}", recording.id] }, @category_assignment.category_item_recording_id),
                           { include_blank: "Select a category item" },
-                          class: "block w-full rounded-md border border-(--surface-border-color) px-3 py-2" %>
+                          class: "block w-full rounded-md border border-[var(--surface-border-color)] px-3 py-2" %>
         </div>
       <% end %>
     <% end %>

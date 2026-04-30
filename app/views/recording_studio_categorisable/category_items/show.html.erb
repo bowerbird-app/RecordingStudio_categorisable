@@ -9,11 +9,11 @@
     <% card.body do %>
       <dl class="space-y-3 text-sm">
         <div>
-          <dt class="text-(--surface-muted-content-color)">Description</dt>
+          <dt class="text-[var(--surface-muted-content-color)]">Description</dt>
           <dd><%= @category_item_recording.recordable.description.presence || "Not set" %></dd>
         </div>
         <div>
-          <dt class="text-(--surface-muted-content-color)">Created</dt>
+          <dt class="text-[var(--surface-muted-content-color)]">Created</dt>
           <dd><%= @category_item_recording.created_at %></dd>
         </div>
       </dl>
