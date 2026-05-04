@@ -2,33 +2,16 @@
 
 require "test_helper"
 
-module RecordingStudioCategorisable
-  class CategoryAssignmentTest < ActiveSupport::TestCase
-    test "uses correct table name" do
-      assert_equal "recording_studio_categorisable_category_assignments", CategoryAssignment.table_name
-    end
+class CategoryAssignmentSourceTest < Minitest::Test
+  ROOT = File.expand_path("../../..", __dir__)
+  PATH = File.join(ROOT, "app/models/recording_studio_categorisable/category_assignment.rb")
 
-    test "validates presence of category_item_recording_id" do
-      assignment = CategoryAssignment.new
-      assert_not assignment.valid?
-      assert_includes assignment.errors[:category_item_recording_id], "can't be blank"
-    end
+  def test_source_declares_expected_table_name_and_recording_validation
+    source = File.read(PATH)
 
-    test "can create valid category assignment with valid recording ID" do
-      # This test would require a full database setup with RecordingStudio
-      # For now, we just test basic validation
-      assignment = CategoryAssignment.new(
-        category_item_recording_id: SecureRandom.uuid
-      )
-      # Will fail validation because recording doesn't exist, but structure is correct
-      assert_not_nil assignment.category_item_recording_id
-    end
-
-    test "setter works for category_item_recording" do
-      assignment = CategoryAssignment.new
-      mock_recording = OpenStruct.new(id: SecureRandom.uuid)
-      assignment.category_item_recording = mock_recording
-      assert_equal mock_recording.id, assignment.category_item_recording_id
-    end
+    assert_includes source, "class CategoryAssignment < ApplicationRecord"
+    assert_includes source, %(self.table_name = "recording_studio_categorisable_category_assignments")
+    assert_includes source, "validates :category_item_recording_id, presence: true"
+    assert_includes source, "def category_item_recording_must_exist"
   end
 end

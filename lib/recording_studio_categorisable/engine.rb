@@ -6,11 +6,14 @@ module RecordingStudioCategorisable
 
     class << self
       def apply_model_extensions(target)
-        apply_extensions(target, RecordingStudioCategorisable.configuration.hooks.model_extensions_for(extension_keys_for(target)))
+        extensions = RecordingStudioCategorisable.configuration.hooks.model_extensions_for(extension_keys_for(target))
+        apply_extensions(target, extensions)
       end
 
       def apply_controller_extensions(target)
-        apply_extensions(target, RecordingStudioCategorisable.configuration.hooks.controller_extensions_for(extension_keys_for(target)))
+        extensions = RecordingStudioCategorisable.configuration.hooks
+                                                 .controller_extensions_for(extension_keys_for(target))
+        apply_extensions(target, extensions)
       end
 
       private
@@ -41,7 +44,8 @@ module RecordingStudioCategorisable
     end
 
     # Run before_initialize hooks
-    initializer "recording_studio_categorisable.before_initialize", before: "recording_studio_categorisable.load_config" do |_app|
+    initializer "recording_studio_categorisable.before_initialize",
+                before: "recording_studio_categorisable.load_config" do |_app|
       RecordingStudioCategorisable::Hooks.run(:before_initialize, self)
     end
 
@@ -82,7 +86,8 @@ module RecordingStudioCategorisable
     end
 
     # Run after_initialize hooks
-    initializer "recording_studio_categorisable.after_initialize", after: "recording_studio_categorisable.load_config" do |_app|
+    initializer "recording_studio_categorisable.after_initialize",
+                after: "recording_studio_categorisable.load_config" do |_app|
       RecordingStudioCategorisable::Hooks.run(:after_initialize, self)
     end
 

@@ -88,7 +88,6 @@ class EngineTest < Minitest::Test
       end
     end.new(app_config)
 
-    # Should not raise even if xcfg.each_pair fails.
     find_initializer("recording_studio_categorisable.load_config").block.call(app)
 
     assert_equal "ok", RecordingStudioCategorisable.configuration.api_key
@@ -109,43 +108,100 @@ class EngineTest < Minitest::Test
     assert_equal 2, to_prepare_blocks.size
   end
 
-  def test_apply_model_extensions_adds_registered_methods_once
+  def test_model_extension_initializer_applies_extensions_to_non_abstract_models
     model_class = Class.new do
-      def self.name
-        "ExampleRecord"
-      end
+      def self.name = "ExampleRecord"
+      def self.abstract_class? = false
+    end
+
+    abstract_model = Class.new do
+      def self.name = "AbstractRecord"
+      def self.abstract_class? = true
     end
 
     RecordingStudioCategorisable.configuration.hooks.extend_model(:ExampleRecord) do
-      def template_extension_method
-        :applied
-      end
+      def template_extension_method = :applied
     end
 
-    RecordingStudioCategorisable::Engine.apply_model_extensions(model_class)
-    RecordingStudioCategorisable::Engine.apply_model_extensions(model_class)
+    to_prepare_blocks = []
+    config_stub = Object.new
+    config_stub.define_singleton_method(:to_prepare) { |&block| to_prepare_blocks << block }
 
-    instance = model_class.new
-    assert_equal :applied, instance.template_extension_method
+    active_record_base = Class.new
+    active_record_base.define_singleton_method(:descendants) { [model_class, abstract_model] }
+
+    RecordingStudioCategorisable::Engine.stub(:config, config_stub) do
+      find_initializer("recording_studio_categorisable.apply_model_extensions").block.call
+    end
+
+    with_replaced_const("ActiveRecord", "Base", active_record_base) do
+      to_prepare_blocks.first.call
+    end
+
+    assert_equal :applied, model_class.new.template_extension_method
+    refute_respond_to abstract_model.new, :template_extension_method
   end
 
-  def test_apply_controller_extensions_matches_demodulized_name
+  def test_controller_extension_initializer_applies_extensions_to_loaded_controllers
     controller_class = Class.new do
-      def self.name
-        "Admin::DashboardController"
-      end
+      def self.name = "Admin::DashboardController"
     end
 
     RecordingStudioCategorisable.configuration.hooks.extend_controller(:DashboardController) do
-      def template_controller_extension
-        :applied
-      end
+      def template_controller_extension = :applied
     end
 
-    RecordingStudioCategorisable::Engine.apply_controller_extensions(controller_class)
+    to_prepare_blocks = []
+    config_stub = Object.new
+    config_stub.define_singleton_method(:to_prepare) { |&block| to_prepare_blocks << block }
 
-    instance = controller_class.new
-    assert_equal :applied, instance.template_controller_extension
+    action_controller_base = Class.new
+    action_controller_base.define_singleton_method(:descendants) { [controller_class] }
+
+    RecordingStudioCategorisable::Engine.stub(:config, config_stub) do
+      find_initializer("recording_studio_categorisable.apply_controller_extensions").block.call
+    end
+
+    with_replaced_const("ActionController", "Base", action_controller_base) do
+      to_prepare_blocks.first.call
+    end
+
+    assert_equal :applied, controller_class.new.template_controller_extension
+  end
+
+  def test_apply_model_extensions_adds_registered_methods_once
+    model_class = Class.new do
+      def self.name = "ExampleRecord"
+    end
+
+    RecordingStudioCategorisable.configuration.hooks.extend_model(:ExampleRecord) do
+      def template_extension_method = :applied
+    end
+
+    RecordingStudioCategorisable::Engine.apply_model_extensions(model_class)
+    RecordingStudioCategorisable::Engine.apply_model_extensions(model_class)
+
+    assert_equal :applied, model_class.new.template_extension_method
+  end
+
+  def test_apply_extensions_ignores_nil_target
+    RecordingStudioCategorisable::Engine.send(:apply_extensions, nil, [proc { raise "should not run" }])
+  end
+
+  def with_replaced_const(parent_name, const_name, value)
+    parent = if Object.const_defined?(parent_name)
+               Object.const_get(parent_name)
+             else
+               Object.const_set(parent_name, Module.new)
+             end
+    original_defined = parent.const_defined?(const_name, false)
+    original = parent.const_get(const_name) if original_defined
+    parent.send(:remove_const, const_name) if original_defined
+    parent.const_set(const_name, value)
+    yield
+  ensure
+    parent.send(:remove_const, const_name) if parent.const_defined?(const_name, false)
+    parent.const_set(const_name, original) if original_defined
   end
 
   private

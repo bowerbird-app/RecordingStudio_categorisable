@@ -6,22 +6,23 @@ module RecordingStudioCategorisable
     before_action :set_category_assignment_recording, only: [:destroy]
 
     def index
-      return unless authorize_action!(@target_recording, role: :view)
+      return unless ensure_authorized!(@target_recording, role: :view)
 
-      @category_assignment_recordings = @target_recording.child_recordings
-                                                         .where(recordable_type: CategoryAssignment.name, trashed_at: nil)
-                                                         .includes(:recordable)
+      @category_assignment_recordings =
+        @target_recording.child_recordings
+                         .where(recordable_type: CategoryAssignment.name, trashed_at: nil)
+                         .includes(:recordable)
     end
 
     def new
-      return unless authorize_action!(@target_recording, role: :admin)
+      return unless ensure_authorized!(@target_recording, role: :admin)
 
       @category_assignment = CategoryAssignment.new
       @available_category_items = available_category_items
     end
 
     def create
-      return unless authorize_action!(@target_recording, role: :admin)
+      return unless ensure_authorized!(@target_recording, role: :admin)
 
       @category_assignment = CategoryAssignment.new(category_assignment_params)
       if @category_assignment.invalid?
@@ -43,7 +44,7 @@ module RecordingStudioCategorisable
     end
 
     def destroy
-      return unless authorize_action!(@target_recording, role: :admin)
+      return unless ensure_authorized!(@target_recording, role: :admin)
 
       (@category_assignment_recording.root_recording || @category_assignment_recording).trash(
         @category_assignment_recording,

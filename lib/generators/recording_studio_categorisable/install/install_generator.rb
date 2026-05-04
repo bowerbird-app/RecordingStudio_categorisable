@@ -21,11 +21,16 @@ module RecordingStudioCategorisable
       end
 
       def copy_initializer
-        template "recording_studio_categorisable_initializer.rb", "config/initializers/recording_studio_categorisable.rb"
+        template(
+          "recording_studio_categorisable_initializer.rb",
+          "config/initializers/recording_studio_categorisable.rb"
+        )
       end
 
       def add_yaml_config
-        return unless yes?("Would you like to add `config/recording_studio_categorisable.yml` for environment-specific settings? [y/N]")
+        prompt = "Would you like to add `config/recording_studio_categorisable.yml` " \
+                 "for environment-specific settings? [y/N]"
+        return unless yes?(prompt)
 
         template "recording_studio_categorisable.yml", "config/recording_studio_categorisable.yml"
       end
@@ -96,7 +101,8 @@ module RecordingStudioCategorisable
       def tailwind_source_lines
         [
           '@source "../../vendor/bundle/**/recording_studio_categorisable/app/views/**/*.erb";',
-          '@source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/recording_studio_categorisable-*/app/views/**/*.erb";',
+          '@source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/' \
+          'recording_studio_categorisable-*/app/views/**/*.erb";',
           '@source "../../vendor/bundle/**/flatpack/app/components/**/*.{rb,erb}";',
           '@source "../../../../../../usr/local/bundle/ruby/**/bundler/gems/flatpack-*/app/components/**/*.{rb,erb}";'
         ]

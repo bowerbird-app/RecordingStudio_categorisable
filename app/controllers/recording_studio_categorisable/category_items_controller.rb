@@ -6,7 +6,7 @@ module RecordingStudioCategorisable
     before_action :set_category_item_recording, only: %i[show edit update destroy]
 
     def show
-      return unless authorize_action!(@category_item_recording, role: :view)
+      ensure_authorized!(@category_item_recording, role: :view)
     end
 
     def new
@@ -14,7 +14,7 @@ module RecordingStudioCategorisable
     end
 
     def create
-      return unless authorize_action!(@category_group_recording, role: :admin)
+      return unless ensure_authorized!(@category_group_recording, role: :admin)
 
       @category_item = CategoryItem.new(category_item_params)
       if @category_item.invalid?
@@ -34,13 +34,13 @@ module RecordingStudioCategorisable
     end
 
     def edit
-      return unless authorize_action!(@category_item_recording, role: :admin)
+      return unless ensure_authorized!(@category_item_recording, role: :admin)
 
       @category_item = @category_item_recording.recordable
     end
 
     def update
-      return unless authorize_action!(@category_item_recording, role: :admin)
+      return unless ensure_authorized!(@category_item_recording, role: :admin)
 
       @category_item = @category_item_recording.recordable.dup
       @category_item.assign_attributes(category_item_params)
@@ -64,7 +64,7 @@ module RecordingStudioCategorisable
     end
 
     def destroy
-      return unless authorize_action!(@category_item_recording, role: :admin)
+      return unless ensure_authorized!(@category_item_recording, role: :admin)
 
       (@category_item_recording.root_recording || @category_item_recording).trash(
         @category_item_recording,

@@ -10,31 +10,21 @@ module RecordingStudioCategorisable
 
     private
 
-    def authorize_action!(recording, role: nil)
+    def ensure_authorized!(recording, role: nil)
       return true unless defined?(RecordingStudioAccessible)
 
-      allowed = RecordingStudioAccessible.authorized?(
+      return true if RecordingStudioAccessible.authorized?(
         actor: current_recording_studio_actor,
         recording: recording,
         role: role || default_authorization_role
       )
-      return true if allowed
 
-      if request.format.html?
-        redirect_to(fallback_root_path, alert: "You are not allowed to access that page.")
-      else
-        head :forbidden
-      end
+      handle_forbidden_access
       false
     end
 
     def default_authorization_role
-      case action_name.to_s
-      when "index", "show"
-        :view
-      else
-        :admin
-      end
+      %w[index show].include?(action_name.to_s) ? :view : :admin
     end
 
     def current_recording_studio_actor
@@ -46,12 +36,31 @@ module RecordingStudioCategorisable
     end
 
     def current_root_recording
-      @current_root_recording ||= begin
-        resolver = RecordingStudioCategorisable.configuration.root_recording_resolver
-        resolved = resolver&.call(controller: self)
-        resolved ||= RecordingStudio::Recording.find_by(id: params[:root_recording_id] || session[:root_recording_id]) if defined?(RecordingStudio::Recording)
-        resolved ||= RecordingStudio::Recording.find_by(parent_recording_id: nil) if defined?(RecordingStudio::Recording)
-        resolved
+      @current_root_recording ||= configured_root_recording || requested_root_recording || default_root_recording
+    end
+
+    def configured_root_recording
+      resolver = RecordingStudioCategorisable.configuration.root_recording_resolver
+      resolver&.call(controller: self)
+    end
+
+    def requested_root_recording
+      return unless defined?(RecordingStudio::Recording)
+
+      RecordingStudio::Recording.find_by(id: params[:root_recording_id] || session[:root_recording_id])
+    end
+
+    def default_root_recording
+      return unless defined?(RecordingStudio::Recording)
+
+      RecordingStudio::Recording.find_by(parent_recording_id: nil)
+    end
+
+    def handle_forbidden_access
+      if request.format.html?
+        redirect_to(fallback_root_path, alert: "You are not allowed to access that page.")
+      else
+        head :forbidden
       end
     end
 

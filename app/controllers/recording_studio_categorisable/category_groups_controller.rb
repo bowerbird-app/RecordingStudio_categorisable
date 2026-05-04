@@ -6,16 +6,16 @@ module RecordingStudioCategorisable
     before_action :set_category_group_recording, only: %i[show edit update destroy]
 
     def index
-      return unless authorize_action!(@parent_recording, role: :view)
+      return unless ensure_authorized!(@parent_recording, role: :view)
 
       @category_group_recordings = @parent_recording.child_recordings
-                                                  .where(recordable_type: CategoryGroup.name, trashed_at: nil)
-                                                  .includes(:recordable)
-                                                  .sort_by { |recording| recording.recordable&.label.to_s.downcase }
+                                                    .where(recordable_type: CategoryGroup.name, trashed_at: nil)
+                                                    .includes(:recordable)
+                                                    .sort_by { |recording| recording.recordable&.label.to_s.downcase }
     end
 
     def show
-      return unless authorize_action!(@category_group_recording, role: :view)
+      return unless ensure_authorized!(@category_group_recording, role: :view)
 
       @category_items = @category_group_recording.child_recordings
                                                  .where(recordable_type: CategoryItem.name, trashed_at: nil)
@@ -28,7 +28,7 @@ module RecordingStudioCategorisable
     end
 
     def create
-      return unless authorize_action!(@parent_recording, role: :admin)
+      return unless ensure_authorized!(@parent_recording, role: :admin)
 
       @category_group = CategoryGroup.new(category_group_params)
       if @category_group.invalid?
@@ -47,13 +47,13 @@ module RecordingStudioCategorisable
     end
 
     def edit
-      return unless authorize_action!(@category_group_recording, role: :admin)
+      return unless ensure_authorized!(@category_group_recording, role: :admin)
 
       @category_group = @category_group_recording.recordable
     end
 
     def update
-      return unless authorize_action!(@category_group_recording, role: :admin)
+      return unless ensure_authorized!(@category_group_recording, role: :admin)
 
       @category_group = @category_group_recording.recordable.dup
       @category_group.assign_attributes(category_group_params)
@@ -76,7 +76,7 @@ module RecordingStudioCategorisable
     end
 
     def destroy
-      return unless authorize_action!(@category_group_recording, role: :admin)
+      return unless ensure_authorized!(@category_group_recording, role: :admin)
 
       (@category_group_recording.root_recording || @category_group_recording).trash(
         @category_group_recording,

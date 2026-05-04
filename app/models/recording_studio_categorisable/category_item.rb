@@ -28,9 +28,9 @@ module RecordingStudioCategorisable
     def category_group
       return nil unless recording&.parent_recording
 
-      if recording.parent_recording.recordable_type == "RecordingStudioCategorisable::CategoryGroup"
-        recording.parent_recording.recordable
-      end
+      return unless recording.parent_recording.recordable_type == "RecordingStudioCategorisable::CategoryGroup"
+
+      recording.parent_recording.recordable
     end
 
     # Query helper to find all assignments of this category item
