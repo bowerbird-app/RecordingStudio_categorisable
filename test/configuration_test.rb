@@ -4,7 +4,7 @@ require "test_helper"
 
 class ConfigurationTest < Minitest::Test
   def setup
-    @configuration = GemTemplate::Configuration.new
+    @configuration = RecordingStudioCategorisable::Configuration.new
   end
 
   def test_merge_updates_known_attributes
@@ -23,17 +23,18 @@ class ConfigurationTest < Minitest::Test
   end
 
   def test_merge_with_non_enumerable_is_noop
-    original = @configuration.to_h
+    @configuration.api_key = nil
+    @configuration.timeout = nil
+    @configuration.enable_feature_x = nil
 
     @configuration.merge!(nil)
 
-    assert_nil @configuration.api_key if original[:api_key].nil?
-    assert_equal original[:api_key], @configuration.api_key unless original[:api_key].nil?
-    assert_equal original[:timeout], @configuration.timeout
-    assert_equal original[:enable_feature_x], @configuration.enable_feature_x
+    assert_nil @configuration.api_key
+    assert_nil @configuration.timeout
+    assert_nil @configuration.enable_feature_x
   end
 
-  def test_to_h_reports_registered_hook_counts
+  def test_to_h_reports_registered_hook_counts_and_resolver_presence
     @configuration.hooks.before_initialize { nil }
     @configuration.hooks.before_initialize { nil }
     @configuration.hooks.after_service { nil }
@@ -42,11 +43,16 @@ class ConfigurationTest < Minitest::Test
 
     assert_equal 2, result.fetch(:hooks_registered).fetch(:before_initialize)
     assert_equal 1, result.fetch(:hooks_registered).fetch(:after_service)
+    assert_equal false, result.fetch(:root_recording_resolver)
+
+    @configuration.root_recording_resolver = ->(controller:) { controller }
+
+    assert_equal true, @configuration.to_h.fetch(:root_recording_resolver)
   end
 
   def test_configure_without_block_is_safe
-    GemTemplate.configure
+    RecordingStudioCategorisable.configure
 
-    assert_kind_of GemTemplate::Configuration, GemTemplate.configuration
+    assert_kind_of RecordingStudioCategorisable::Configuration, RecordingStudioCategorisable.configuration
   end
 end

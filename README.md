@@ -1,30 +1,210 @@
-# GemTemplate
+# RecordingStudioCategorisable
 
-Internal template for building Rails engine addons on top of RecordingStudio.
+A Rails engine addon for [RecordingStudio](https://github.com/bowerbird-app/RecordingStudio) that provides flexible category management. Create category groups, define category items, and assign categories to any recording in your RecordingStudio installation.
 
-## What's Included
+## Features
 
-- **RecordingStudio** gem installed and configured
-- **Devise** authentication with a pre-seeded admin user
-- **Workspace** root recording set up following RecordingStudio's Quick Start pattern
-- **FlatPack** UI component library for all views
-- **Dummy app** (`test/dummy/`) with a working login screen and FlatPack default sidebar layout for authenticated pages
+- **Category Groups**: Organize categories into logical groups (e.g., "Project Status", "Priority", "Team")
+- **Category Items**: Define individual category values within each group
+- **Category Assignments**: Assign categories to recordings for organization and filtering
+- **RecordingStudio Integration**: All categories are persisted as RecordingStudio recordings, providing full event history and tree structure
+- **Authorization**: Integrates with `RecordingStudioAccessible` when present for access control
+- **Trash support**: Uses `RecordingStudioTrashable` scopes and lifecycle APIs when present
+- **FlatPack UI**: Clean, accessible interface using FlatPack ViewComponents
+- **Flexible API**: Query helpers for finding categories, assignments, and related recordings
 
-## Quick Start
+## Architecture
 
-### GitHub Codespaces (Recommended)
+### Recording Structure
+
+All category entities are stored as RecordingStudio recordings with minimal recordable payloads:
+
+```
+Workspace (root recording)
+├── CategoryGroup (label: "Project Status")
+│   ├── CategoryItem (label: "Active")
+│   ├── CategoryItem (label: "On Hold")
+│   └── CategoryItem (label: "Completed")
+├── CategoryGroup (label: "Priority")
+│   ├── CategoryItem (label: "Low")
+│   ├── CategoryItem (label: "Medium")
+│   └── CategoryItem (label: "High")
+└── Any Recording
+    └── CategoryAssignment (category_item_recording_id: <UUID>)
+```
+
+### Recordable Types
+
+- **`RecordingStudioCategorisable::CategoryGroup`**: Container for related category items
+  - Payload: `{ label: "Group Name" }`
+- **`RecordingStudioCategorisable::CategoryItem`**: Individual category option within a group
+  - Payload: `{ label: "Item Name" }`
+- **`RecordingStudioCategorisable::CategoryAssignment`**: Links a recording to a category item
+  - Payload: `{ category_item_recording_id: <UUID> }` (reference to category item recording)
+
+## Installation
+
+### 1. Add to Gemfile
+
+```ruby
+gem "recording_studio_categorisable", github: "bowerbird-app/RecordingStudio_categorisable"
+```
+
+### 2. Bundle install
+
+```bash
+bundle install
+```
+
+### 3. Register recordable types
+
+In your `config/initializers/recording_studio.rb`:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.recordable_types = [
+    "Workspace",
+    "RecordingStudioCategorisable::CategoryGroup",
+    "RecordingStudioCategorisable::CategoryItem",
+    "RecordingStudioCategorisable::CategoryAssignment"
+    # ... your other recordable types
+  ]
+end
+```
+
+### 4. Install the addon
+
+Run the install generator and copy the engine migrations into your host app:
+
+```bash
+bin/rails generate recording_studio_categorisable:install
+bin/rails generate recording_studio_categorisable:migrations
+bin/rails db:migrate
+```
+
+### 5. Mount the engine
+
+In your `config/routes.rb`:
+
+```ruby
+Rails.application.routes.draw do
+  mount RecordingStudioCategorisable::Engine, at: "/categories"
+  # ... other routes
+end
+```
+
+### 6. Add navigation (optional)
+
+Update your app's navigation to include a link to the category management interface:
+
+```erb
+<%= link_to "Categories", recording_studio_categorisable.root_path %>
+```
+
+## Usage
+
+### Creating Category Groups and Items
+
+Via the UI:
+1. Navigate to `/categories`
+2. Click "New Category Group"
+3. Create a group (e.g., "Project Status")
+4. Add category items (e.g., "Active", "On Hold", "Completed")
+
+Via code:
+
+```ruby
+# Create a category group
+result = root_recording.record(RecordingStudioCategorisable::CategoryGroup) do |group|
+  group.label = "Project Status"
+end
+
+status_group_recording = result.recording if result.success?
+
+# Add category items to the group
+result = status_group_recording.record(RecordingStudioCategorisable::CategoryItem) do |item|
+  item.label = "Active"
+end
+
+active_item_recording = result.recording if result.success?
+```
+
+### Assigning Categories to Recordings
+
+```ruby
+# Assign a category to any recording
+result = target_recording.record(RecordingStudioCategorisable::CategoryAssignment) do |assignment|
+  assignment.category_item_recording = active_item_recording
+end
+```
+
+### Query Helpers
+
+```ruby
+# Find all category items in a group
+category_group = CategoryGroup.find(group_id)
+items = category_group.category_items
+
+# Find the parent group of a category item
+category_item = CategoryItem.find(item_id)
+group = category_item.category_group
+
+# Find all assignments of a category item
+assignments = category_item.category_assignments
+
+# Find the target recording of an assignment
+assignment = CategoryAssignment.find(assignment_id)
+target = assignment.target_recording
+category_item = assignment.category_item
+```
+
+## Authorization
+
+When `RecordingStudioAccessible` is present, the addon automatically enforces authorization and prefers accessible root recordings for mounted pages:
+
+```ruby
+# In controllers, authorization is checked before actions
+def update
+  return unless ensure_authorized!(@category_group_recording, role: :admin)
+  # ... action logic
+end
+```
+
+The authorization integrates with RecordingStudioAccessible's policy system, checking permissions based on the current actor and the recording's access controls.
+
+To use the access addon in a host app, add:
+
+```ruby
+gem "recording_studio_accessible"
+```
+
+Then install and configure it following that gem's README. This engine will automatically call `RecordingStudioAccessible.authorized?` when it is available.
+
+## Trash and restore integration
+
+When `RecordingStudioTrashable` is present, the addon uses Trashable's active-recording scope and namespaced trash lifecycle method for category records.
+
+To enable that integration in a host app, add:
+
+```ruby
+gem "recording_studio_trashable"
+```
+
+Then install and configure Trashable following that gem's README. Category group, item, and assignment recordables opt in automatically when the addon is loaded.
+
+## Development
+
+### Quick Start with GitHub Codespaces
 
 1. Click **Code** → **Codespaces** → **Create codespace**
 2. Wait for setup to complete
 3. Run:
    ```bash
    cd test/dummy
-   bin/rails db:setup
+   bin/rails db:prepare
    bin/dev
    ```
-4. Open port 3000 — you'll see the login screen
-
-The dummy app already includes FlatPack generator output (`flat_pack:install` and default sidebar layout scaffold) so authenticated pages render with the FlatPack sidebar shell by default.
+4. Open port 3000 and visit `/categories`
 
 ### Login Credentials
 
@@ -33,86 +213,32 @@ The dummy app already includes FlatPack generator output (`flat_pack:install` an
 | Email    | admin@admin.com   |
 | Password | Password          |
 
-The login form is prefilled with these credentials for fast access.
+### Dummy App
 
-## Architecture
+The `test/dummy` app demonstrates:
+- Complete category management workflow
+- Integration with RecordingStudio root recording pattern
+- Optional `RecordingStudioAccessible` integration for authorization
+- Optional `RecordingStudioTrashable` integration for category record lifecycle
+- FlatPack component usage
+- Seed data with 4 category groups and multiple items
+- Engine migrations loaded from the addon directly, without copying duplicate migration files into the dummy app
 
-### Root Recording Pattern
+### Running Tests
 
-This template follows RecordingStudio's root recording pattern:
+Due to the Ruby version requirement (3.3.0+), tests should be run in an environment with Ruby 3.3 or higher:
 
-- **Workspace** is the top-level recordable
-- A root `RecordingStudio::Recording` wraps the Workspace
-- The admin user has root-level admin access via `RecordingStudio::Access`
-- `Current.actor` is set from `current_user` (Devise) in `ApplicationController`
-
-### Extending RecordingStudio
-
-To add new recordable types:
-
-1. Create your model (e.g., `Page`, `Comment`)
-2. Register it in `config/initializers/recording_studio.rb`:
-   ```ruby
-   RecordingStudio.configure do |config|
-     config.recordable_types = ["Workspace", "YourNewType"]
-   end
-   ```
-3. Leave optional behavior off by default, then opt into capabilities on the specific recordable models that need them:
-   ```ruby
-   class YourNewType < ApplicationRecord
-     include RecordingStudio::Capabilities::Movable.to("Workspace")
-     include RecordingStudio::Capabilities::Copyable.to("Workspace")
-   end
-   ```
-4. If you want per-device root persistence, wire it explicitly in your controller layer:
-   ```ruby
-   class ApplicationController < ActionController::Base
-     include RecordingStudio::Concerns::DeviceSessionConcern
-   end
-   ```
-5. Create recordings under the root:
-   ```ruby
-   root_recording.record(YourNewType) do |record|
-     record.title = "Example"
-   end
-   ```
-
-### Capabilities
-
-This template uses the current RecordingStudio approach: built-in capabilities are off by default and are enabled per recordable type by including the relevant module on the model.
-
-- `movable`
-- `copyable`
-
-Device session persistence is separate from capabilities. It is enabled only when you include `RecordingStudio::Concerns::DeviceSessionConcern` in your controller layer.
-
-Enable behavior intentionally where it belongs:
-
-```ruby
-class RecordingStudioPage < ApplicationRecord
-  include RecordingStudio::Capabilities::Movable.to("Workspace")
-  include RecordingStudio::Capabilities::Copyable.to("Workspace")
-end
-
-class ApplicationController < ActionController::Base
-  include RecordingStudio::Concerns::DeviceSessionConcern
-end
+```bash
+bundle exec rake test
 ```
 
-### FlatPack UI Components
+If you change dummy app boot, routes, assets, or migrations, also validate the dummy app:
 
-All views use FlatPack ViewComponents. Available components include:
-
-- `FlatPack::Button::Component` — Buttons (`:primary`, `:secondary`, `:ghost`)
-- `FlatPack::Card::Component` — Cards (`:default`, `:elevated`, `:outlined`)
-- `FlatPack::Alert::Component` — Alerts (`:success`, `:error`, `:warning`, `:info`)
-- `FlatPack::Badge::Component` — Status badges
-- `FlatPack::Table::Component` — Data tables
-- `FlatPack::TextInput::Component`, `EmailInput`, `PasswordInput` — Form inputs
-- `FlatPack::Breadcrumb::Component` — Navigation breadcrumbs
-- `FlatPack::Navbar::Component` — Navigation sidebar
-
-See the [FlatPack README](https://github.com/bowerbird-app/flatpack) for full documentation.
+```bash
+cd test/dummy
+bundle exec rails db:prepare
+bundle exec rails test
+```
 
 ## Tech Stack
 
@@ -121,11 +247,17 @@ See the [FlatPack README](https://github.com/bowerbird-app/flatpack) for full do
 | Ruby            | 3.3+    |
 | Rails           | 8.1+    |
 | PostgreSQL      | 16      |
-| TailwindCSS     | 4       |
-| RecordingStudio | v0.1.0-alpha (pinned in `test/dummy/Gemfile`) |
-| FlatPack        | v0.1.33 (pinned in `test/dummy/Gemfile`) |
-| Devise          | latest  |
+| RecordingStudio | v0.1.0-alpha |
+| FlatPack        | v0.1.33 |
 
-## Documentation
+## Design Principles
 
-The original gem template documentation is preserved in `docs/gem_template/` as architectural reference material. Use it as background on the engine conventions; the README and dummy app are the source of truth for the Recording Studio addon workflow.
+1. **Minimal Recordable Payloads**: Category recordables contain only essential data (label for groups/items, category item recording reference for assignments)
+2. **Leverage RecordingStudio**: All categorization data flows through recordings, providing full event history, trash/restore, and tree structure
+3. **Authorization-Ready**: Seamless integration with RecordingStudioAccessible without hard dependencies
+4. **FlatPack-First**: All UI built with standardized FlatPack components for consistency and maintainability
+5. **No Taxonomy Overbuild**: Simple, flat category structure without unnecessary hierarchy or complexity
+
+## License
+
+This project is licensed under the MIT License.

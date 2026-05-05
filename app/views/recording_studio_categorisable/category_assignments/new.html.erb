@@ -1,0 +1,38 @@
+<div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Assign category",
+    subtitle: target_recording_title(@target_recording),
+    variant: :h1
+  ) %>
+
+  <%= form_with model: @category_assignment, url: target_recording_category_assignments_path(@target_recording), class: "space-y-6" do |form| %>
+    <% if @category_assignment.errors.any? %>
+      <%= render FlatPack::Alert::Component.new(
+        title: "Unable to assign category",
+        message: @category_assignment.errors.full_messages.to_sentence,
+        variant: :error
+      ) %>
+    <% end %>
+
+    <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
+      <% card.body do %>
+        <div class="space-y-3">
+          <%= form.label :category_item_recording_id, "Category item", class: "block text-sm font-medium" %>
+          <%= form.select :category_item_recording_id,
+                          options_for_select(@available_category_items.map { |recording| [category_item_option_label(recording), recording.id] }, @category_assignment.category_item_recording_id),
+                          { include_blank: "Select a category item" },
+                          class: "block w-full rounded-md border border-[var(--surface-border-color)] px-3 py-2" %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <div class="flex gap-2">
+      <%= form.button type: :submit, class: "inline-flex" do %>
+        <%= render FlatPack::Button::Component.new(text: "Assign category", style: :primary, size: :md) %>
+      <% end %>
+      <%= link_to target_recording_category_assignments_path(@target_recording), class: "inline-flex" do %>
+        <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, size: :md) %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

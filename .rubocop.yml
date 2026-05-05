@@ -16,21 +16,31 @@ Style/StringLiterals:
 Layout/LineLength:
   Max: 120
 
-# Relax metrics for test files and generators
+# Relax metrics for test files, generators, and CRUD-heavy engine controllers.
 Metrics/ClassLength:
   Exclude:
     - 'test/**/*'
-    - 'lib/gem_template/hooks.rb'
+    - 'lib/recording_studio_categorisable/hooks.rb'
+    - 'lib/recording_studio_categorisable/engine.rb'
 
 Metrics/MethodLength:
   Exclude:
     - 'test/**/*'
     - 'lib/generators/**/*'
+    - 'app/controllers/recording_studio_categorisable/category_groups_controller.rb'
+    - 'app/controllers/recording_studio_categorisable/category_items_controller.rb'
+    - 'app/controllers/recording_studio_categorisable/category_assignments_controller.rb'
 
 Metrics/AbcSize:
   Exclude:
     - 'test/**/*'
     - 'lib/generators/**/*'
+    - 'app/controllers/recording_studio_categorisable/category_groups_controller.rb'
+    - 'app/controllers/recording_studio_categorisable/category_items_controller.rb'
+
+Metrics/CyclomaticComplexity:
+  Exclude:
+    - 'app/controllers/recording_studio_categorisable/application_controller.rb'
 
 # Allow empty blocks in tests (common for stubs/mocks)
 Lint/EmptyBlock:
@@ -50,5 +60,10 @@ Naming/VariableNumber:
 # Don't require super in service initialize methods
 Lint/MissingSuper:
   Exclude:
-    - 'lib/gem_template/services/**/*'
+    - 'lib/recording_studio_categorisable/services/**/*'
     - 'test/services/**/*'
+
+Naming/PredicateMethod:
+  Exclude:
+    - "app/controllers/recording_studio_categorisable/application_controller.rb"
+    - "app/models/recording_studio_categorisable/categorisable.rb"

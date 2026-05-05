@@ -1,0 +1,55 @@
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Category Groups",
+    subtitle: "All category groups",
+    variant: :h1
+  ) %>
+
+  <div class="flex gap-2">
+    <%= link_to recording_studio_categorisable.new_category_group_path, class: "inline-flex" do %>
+      <%= render FlatPack::Button::Component.new(
+        text: "New Category Group",
+        style: :primary,
+        size: :md
+      ) %>
+    <% end %>
+  </div>
+
+  <% if @category_group_recordings.any? %>
+    <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+      <% card.body do %>
+        <div class="divide-y divide-gray-200">
+          <% @category_group_recordings.each do |group_recording| %>
+            <% group = group_recording.recordable %>
+            <div class="py-4 flex items-center justify-between">
+              <div>
+                <h4 class="text-base font-medium text-gray-900">
+                  <%= link_to group.label, recording_studio_categorisable.category_group_path(group_recording), 
+                              class: "hover:text-blue-600" %>
+                </h4>
+                <p class="text-sm text-gray-500 mt-1">
+                  <%= pluralize(group_recording.child_recordings.where(recordable_type: RecordingStudioCategorisable::CategoryItem.name, trashed_at: nil).count, "item") %>
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <%= link_to recording_studio_categorisable.category_group_path(group_recording), class: "inline-flex" do %>
+                  <%= render FlatPack::Button::Component.new(
+                    text: "View",
+                    style: :secondary,
+                    size: :sm
+                  ) %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  <% else %>
+    <%= render FlatPack::Alert::Component.new(
+      title: "No category groups yet",
+      message: "Create your first category group to start organizing.",
+      variant: :info
+    ) %>
+  <% end %>
+</div>

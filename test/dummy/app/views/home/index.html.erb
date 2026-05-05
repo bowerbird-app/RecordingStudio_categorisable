@@ -1,7 +1,7 @@
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
-    title: @workspace&.name || "Recording Studio addon template",
-    subtitle: "Use this dummy app to validate authentication, root recording setup, and addon UI wiring before you rename the engine.",
+    title: @workspace&.name || "RecordingStudio Categorisable",
+    subtitle: "Category management addon for RecordingStudio - organize and categorize your recordings",
     variant: :h1
   ) %>
 
@@ -9,28 +9,34 @@
     <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
       <% card.header do %>
         <%= render FlatPack::PageTitle::Component.new(
-          title: "Template workflow",
-          subtitle: "The first things to change when you turn this into a real addon.",
+          title: "Category Management",
+          subtitle: "Create and manage category groups and items to organize your recordings.",
           variant: :h3,
           class: "mb-0 pb-0"
         ) %>
       <% end %>
 
       <% card.body do %>
-        <ol class="space-y-4 text-sm leading-6 text-[var(--surface-content-color)]">
-          <li>
-            Rename the gem with <code>bin/rename_gem your_addon_name</code> once the engine structure looks right.
-          </li>
-          <li>
-            Replace the sample migration with your addon's real tables and then run <code>rails generate gem_template:migrations</code> in the host app.
-          </li>
-          <li>
-            Register your recordable types in <code>test/dummy/config/initializers/recording_studio.rb</code> and add capabilities only where they are needed.
-          </li>
-          <li>
-            Use this dummy app to check layout, authentication, Tailwind sources, and root recording behavior before shipping the engine.
-          </li>
-        </ol>
+        <div class="space-y-4">
+          <p class="text-sm leading-6 text-[var(--surface-content-color)]">
+            This addon provides a flexible categorization system built on top of RecordingStudio:
+          </p>
+          <ul class="space-y-2 text-sm leading-6 text-[var(--surface-content-color)]">
+            <li><strong>Category Groups:</strong> Container for related category items (e.g., "Project Status", "Priority")</li>
+            <li><strong>Category Items:</strong> Individual categories within a group (e.g., "Active", "High")</li>
+            <li><strong>Category Assignments:</strong> Link recordings to category items for organization and filtering</li>
+          </ul>
+        </div>
+      <% end %>
+
+      <% card.footer do %>
+        <%= link_to recording_studio_categorisable.root_path, class: "inline-flex" do %>
+          <%= render FlatPack::Button::Component.new(
+            text: "Manage Categories",
+            style: :primary,
+            size: :md
+          ) %>
+        <% end %>
       <% end %>
     <% end %>
 
@@ -39,7 +45,7 @@
         <% card.header do %>
           <%= render FlatPack::PageTitle::Component.new(
             title: "Workspace state",
-            subtitle: "The seeded Recording Studio baseline for local development.",
+            subtitle: "Current workspace and authentication status.",
             variant: :h3,
             class: "mb-0 pb-0"
           ) %>
@@ -66,19 +72,19 @@
       <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
         <% card.header do %>
           <%= render FlatPack::PageTitle::Component.new(
-            title: "Useful routes",
-            subtitle: "Quick links for checking the mounted engine and local app shell.",
+            title: "Demo data",
+            subtitle: "Pre-seeded category groups for exploration.",
             variant: :h3,
             class: "mb-0 pb-0"
           ) %>
         <% end %>
 
         <% card.body do %>
-          <div class="space-y-3 text-sm">
-            <p><strong>App home:</strong> <code>/</code></p>
-            <p><strong>Recording Studio mount:</strong> <code>/recording_studio</code></p>
-            <p><strong>Health check:</strong> <code>/up</code></p>
-          </div>
+          <ul class="space-y-2 text-sm">
+            <li><strong>Project Status</strong> - Planning, Active, On Hold, etc.</li>
+            <li><strong>Priority</strong> - Low, Medium, High, Critical</li>
+            <li><strong>Team</strong> - Engineering, Design, Product, etc.</li>
+          </ul>
         <% end %>
       <% end %>
     </div>

@@ -4,7 +4,7 @@ require "test_helper"
 
 class HooksTest < Minitest::Test
   def setup
-    @hooks = GemTemplate::Hooks.new
+    @hooks = RecordingStudioCategorisable::Hooks.new
   end
 
   def teardown
@@ -229,7 +229,7 @@ class HooksTest < Minitest::Test
     @hooks.raise_on_error = true
     @hooks.after_initialize { raise "test error" }
 
-    assert_raises(GemTemplate::Hooks::HookError) do
+    assert_raises(RecordingStudioCategorisable::Hooks::HookError) do
       @hooks.run(:after_initialize)
     end
   end
@@ -261,25 +261,25 @@ class HooksTest < Minitest::Test
   # === Class Method Tests ===
 
   def test_class_run_delegates_to_configuration
-    GemTemplate.configuration.hooks
+    RecordingStudioCategorisable.configuration.hooks
     called = false
 
-    GemTemplate.configuration.hooks.after_initialize { called = true }
-    GemTemplate::Hooks.run(:after_initialize)
+    RecordingStudioCategorisable.configuration.hooks.after_initialize { called = true }
+    RecordingStudioCategorisable::Hooks.run(:after_initialize)
 
     assert called
   ensure
-    GemTemplate.configuration.hooks.clear!
+    RecordingStudioCategorisable.configuration.hooks.clear!
   end
 
   def test_class_trigger_is_alias_for_run
     called = false
-    GemTemplate.configuration.hooks.on(:custom_event) { called = true }
+    RecordingStudioCategorisable.configuration.hooks.on(:custom_event) { called = true }
 
-    GemTemplate::Hooks.trigger(:custom_event)
+    RecordingStudioCategorisable::Hooks.trigger(:custom_event)
 
     assert called
   ensure
-    GemTemplate.configuration.hooks.clear!
+    RecordingStudioCategorisable.configuration.hooks.clear!
   end
 end

@@ -1,10 +1,12 @@
 source "https://rubygems.org"
 
-# Use the gem_template engine
-gem "gem_template", path: "../.."
+# Use the recording_studio_categorisable engine
+gem "recording_studio_categorisable", path: "../.."
 
 # RecordingStudio engine
 gem "recording_studio", github: "bowerbird-app/RecordingStudio", tag: "v0.1.0-alpha"
+gem "recording_studio_accessible", github: "bowerbird-app/RecordingStudio_accessible"
+gem "recording_studio_trashable", github: "bowerbird-app/RecordingStudio_trashable"
 
 # Devise authentication
 gem "devise"
