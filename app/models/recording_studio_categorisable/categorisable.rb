@@ -4,20 +4,12 @@ module RecordingStudioCategorisable
   module Categorisable
     extend ActiveSupport::Concern
 
-    def recording
-      @recording ||= RecordingStudio::Recording.find_by(
-        recordable_type: self.class.name,
-        recordable_id: id
-      )
-    end
+    include RecordingBacked
 
     def category_assignment_recordings
       return RecordingStudio::Recording.none unless recording
 
-      recording.child_recordings.where(
-        recordable_type: "RecordingStudioCategorisable::CategoryAssignment",
-        trashed_at: nil
-      )
+      RecordingRelations.active(recording.child_recordings).where(recordable_type: "RecordingStudioCategorisable::CategoryAssignment")
     end
 
     def category_assignments
@@ -55,7 +47,11 @@ module RecordingStudioCategorisable
 
       return false unless assignment_recording
 
-      (assignment_recording.root_recording || assignment_recording).trash(assignment_recording, actor: actor)
+      if assignment_recording.respond_to?(:recording_studio_trashable_trash!)
+        assignment_recording.recording_studio_trashable_trash!(actor: actor)
+      else
+        (assignment_recording.root_recording || assignment_recording).trash(assignment_recording, actor: actor)
+      end
       true
     end
   end

@@ -10,19 +10,13 @@ module RecordingStudioCategorisable
   # - Can be assigned to multiple target recordables via CategoryAssignment
   #
   class CategoryItem < ApplicationRecord
+    include RecordingBacked
+
     self.table_name = "recording_studio_categorisable_category_items"
 
     validates :label, presence: true, length: { maximum: 255 }
     validates :position, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
     validates :color, length: { maximum: 50 }, allow_blank: true
-
-    # Get the RecordingStudio::Recording wrapper for this item
-    def recording
-      @recording ||= RecordingStudio::Recording.find_by(
-        recordable_type: self.class.name,
-        recordable_id: id
-      )
-    end
 
     # Query helper to find the parent category group
     def category_group

@@ -5,10 +5,10 @@ module RecordingStudioCategorisable
     def index
       root = current_root_recording
       @category_groups = if root
-                           root.child_recordings
-                               .where(recordable_type: CategoryGroup.name, trashed_at: nil)
-                               .includes(:recordable)
-                               .sort_by { |recording| recording.recordable&.label.to_s.downcase }
+                           active_recordings(root.child_recordings)
+                             .where(recordable_type: CategoryGroup.name)
+                             .includes(:recordable)
+                             .sort_by { |recording| recording.recordable&.label.to_s.downcase }
                          else
                            []
                          end

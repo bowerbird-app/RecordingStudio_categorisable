@@ -41,6 +41,14 @@ module RecordingStudioCategorisable
       def identity_hash
         {}.compare_by_identity
       end
+
+      def log_configuration_warning(source, error)
+        return unless defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+
+        Rails.logger.warn(
+          "[RecordingStudioCategorisable] Failed to load #{source}: #{error.class}: #{error.message}"
+        )
+      end
     end
 
     # Run before_initialize hooks
@@ -59,8 +67,8 @@ module RecordingStudioCategorisable
             nil
           end
           RecordingStudioCategorisable.configuration.merge!(yaml) if yaml.respond_to?(:each)
-        rescue StandardError => _e
-          # ignore load errors; host app can provide initializer overrides
+        rescue StandardError => e
+          log_configuration_warning("config_for(:recording_studio_categorisable)", e)
         end
       end
 
@@ -75,8 +83,8 @@ module RecordingStudioCategorisable
             hash = {}
             xcfg.each_pair { |k, v| hash[k] = v } if xcfg.respond_to?(:each_pair)
             RecordingStudioCategorisable.configuration.merge!(hash) if hash&.any?
-          rescue StandardError => _e
-            # ignore
+          rescue StandardError => e
+            log_configuration_warning("config.x.recording_studio_categorisable", e)
           end
         end
       end
@@ -89,6 +97,13 @@ module RecordingStudioCategorisable
     initializer "recording_studio_categorisable.after_initialize",
                 after: "recording_studio_categorisable.load_config" do |_app|
       RecordingStudioCategorisable::Hooks.run(:after_initialize, self)
+    end
+
+    initializer "recording_studio_categorisable.optional_integrations",
+                after: "recording_studio_categorisable.after_initialize" do
+      config.to_prepare do
+        RecordingStudioCategorisable.install_optional_integrations!
+      end
     end
 
     # Apply model extensions when models are loaded

@@ -9,6 +9,7 @@ A Rails engine addon for [RecordingStudio](https://github.com/bowerbird-app/Reco
 - **Category Assignments**: Assign categories to recordings for organization and filtering
 - **RecordingStudio Integration**: All categories are persisted as RecordingStudio recordings, providing full event history and tree structure
 - **Authorization**: Integrates with `RecordingStudioAccessible` when present for access control
+- **Trash support**: Uses `RecordingStudioTrashable` scopes and lifecycle APIs when present
 - **FlatPack UI**: Clean, accessible interface using FlatPack ViewComponents
 - **Flexible API**: Query helpers for finding categories, assignments, and related recordings
 
@@ -71,7 +72,17 @@ RecordingStudio.configure do |config|
 end
 ```
 
-### 4. Mount the engine
+### 4. Install the addon
+
+Run the install generator and copy the engine migrations into your host app:
+
+```bash
+bin/rails generate recording_studio_categorisable:install
+bin/rails generate recording_studio_categorisable:migrations
+bin/rails db:migrate
+```
+
+### 5. Mount the engine
 
 In your `config/routes.rb`:
 
@@ -82,7 +93,7 @@ Rails.application.routes.draw do
 end
 ```
 
-### 5. Add navigation (optional)
+### 6. Add navigation (optional)
 
 Update your app's navigation to include a link to the category management interface:
 
@@ -149,17 +160,37 @@ category_item = assignment.category_item
 
 ## Authorization
 
-When `RecordingStudioAccessible` is present, the addon automatically enforces authorization:
+When `RecordingStudioAccessible` is present, the addon automatically enforces authorization and prefers accessible root recordings for mounted pages:
 
 ```ruby
 # In controllers, authorization is checked before actions
 def update
-  authorize_action!(@category_group_recording)
+  return unless ensure_authorized!(@category_group_recording, role: :admin)
   # ... action logic
 end
 ```
 
 The authorization integrates with RecordingStudioAccessible's policy system, checking permissions based on the current actor and the recording's access controls.
+
+To use the access addon in a host app, add:
+
+```ruby
+gem "recording_studio_accessible"
+```
+
+Then install and configure it following that gem's README. This engine will automatically call `RecordingStudioAccessible.authorized?` when it is available.
+
+## Trash and restore integration
+
+When `RecordingStudioTrashable` is present, the addon uses Trashable's active-recording scope and namespaced trash lifecycle method for category records.
+
+To enable that integration in a host app, add:
+
+```ruby
+gem "recording_studio_trashable"
+```
+
+Then install and configure Trashable following that gem's README. Category group, item, and assignment recordables opt in automatically when the addon is loaded.
 
 ## Development
 
@@ -170,7 +201,7 @@ The authorization integrates with RecordingStudioAccessible's policy system, che
 3. Run:
    ```bash
    cd test/dummy
-   bin/rails db:setup
+   bin/rails db:prepare
    bin/dev
    ```
 4. Open port 3000 and visit `/categories`
@@ -187,9 +218,11 @@ The authorization integrates with RecordingStudioAccessible's policy system, che
 The `test/dummy` app demonstrates:
 - Complete category management workflow
 - Integration with RecordingStudio root recording pattern
+- Optional `RecordingStudioAccessible` integration for authorization
+- Optional `RecordingStudioTrashable` integration for category record lifecycle
 - FlatPack component usage
-- Authorization flow (when RecordingStudioAccessible is present)
 - Seed data with 4 category groups and multiple items
+- Engine migrations loaded from the addon directly, without copying duplicate migration files into the dummy app
 
 ### Running Tests
 
@@ -197,6 +230,14 @@ Due to the Ruby version requirement (3.3.0+), tests should be run in an environm
 
 ```bash
 bundle exec rake test
+```
+
+If you change dummy app boot, routes, assets, or migrations, also validate the dummy app:
+
+```bash
+cd test/dummy
+bundle exec rails db:prepare
+bundle exec rails test
 ```
 
 ## Tech Stack

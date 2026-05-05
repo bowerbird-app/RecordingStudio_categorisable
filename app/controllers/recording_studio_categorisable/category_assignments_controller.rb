@@ -31,11 +31,7 @@ module RecordingStudioCategorisable
         return
       end
 
-      @target_recording.record(
-        @category_assignment,
-        actor: current_recording_studio_actor,
-        parent_recording: @target_recording
-      )
+      create_child_recording!(parent_recording: @target_recording, recordable: @category_assignment)
       redirect_to target_recording_category_assignments_path(@target_recording),
                   notice: "Category assigned successfully."
     rescue ActiveRecord::RecordInvalid
@@ -46,10 +42,7 @@ module RecordingStudioCategorisable
     def destroy
       return unless ensure_authorized!(@target_recording, role: :admin)
 
-      (@category_assignment_recording.root_recording || @category_assignment_recording).trash(
-        @category_assignment_recording,
-        actor: current_recording_studio_actor
-      )
+      trash_recording!(recording: @category_assignment_recording)
       redirect_to target_recording_category_assignments_path(@target_recording),
                   notice: "Category assignment removed successfully."
     end
@@ -57,11 +50,15 @@ module RecordingStudioCategorisable
     private
 
     def set_target_recording
-      @target_recording = RecordingStudio::Recording.find(params[:target_recording_id])
+      @target_recording = active_recording_scope.find(params[:target_recording_id])
     end
 
     def set_category_assignment_recording
-      @category_assignment_recording = RecordingStudio::Recording.find(params[:id])
+      @category_assignment_recording = find_child_recording!(
+        parent_recording: @target_recording,
+        id: params[:id],
+        recordable_type: CategoryAssignment.name
+      )
     end
 
     def category_assignment_params
@@ -69,11 +66,13 @@ module RecordingStudioCategorisable
     end
 
     def available_category_items
-      RecordingStudio::Recording.where(recordable_type: CategoryItem.name, trashed_at: nil)
-                                .includes(:recordable)
-                                .sort_by do |recording|
+      root_recording = root_recording_for(@target_recording)
+      active_recording_scope
+        .where(root_recording_id: root_recording&.id, recordable_type: CategoryItem.name)
+        .includes(:recordable)
+        .sort_by do |recording|
         [recording.recordable&.category_group&.label.to_s.downcase, recording.recordable&.label.to_s.downcase]
-      end
+        end
     end
   end
 end

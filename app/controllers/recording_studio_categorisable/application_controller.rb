@@ -2,9 +2,11 @@
 
 module RecordingStudioCategorisable
   class ApplicationController < (defined?(::ApplicationController) ? ::ApplicationController : ActionController::Base)
+    include RecordingSupport
+
     protect_from_forgery with: :exception unless defined?(::ApplicationController)
     layout "recording_studio_categorisable/blank"
-    helper_method :current_recording_studio_actor
+    helper_method :current_recording_studio_actor, :current_recording_studio_impersonator
 
     rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
 
@@ -35,8 +37,17 @@ module RecordingStudioCategorisable
       end
     end
 
+    def current_recording_studio_impersonator
+      return unless defined?(Current) && Current.respond_to?(:impersonator)
+
+      Current.impersonator
+    end
+
     def current_root_recording
-      @current_root_recording ||= configured_root_recording || requested_root_recording || default_root_recording
+      @current_root_recording ||= configured_root_recording ||
+                                  requested_root_recording ||
+                                  accessible_root_recording ||
+                                  default_root_recording
     end
 
     def configured_root_recording
@@ -47,13 +58,20 @@ module RecordingStudioCategorisable
     def requested_root_recording
       return unless defined?(RecordingStudio::Recording)
 
-      RecordingStudio::Recording.find_by(id: params[:root_recording_id] || session[:root_recording_id])
+      active_recording_scope.find_by(id: params[:root_recording_id] || session[:root_recording_id])
+    end
+
+    def accessible_root_recording
+      return unless defined?(RecordingStudioAccessible) && RecordingStudioAccessible.respond_to?(:root_recordings_for)
+      return unless current_recording_studio_actor
+
+      RecordingStudioAccessible.root_recordings_for(actor: current_recording_studio_actor, minimum_role: :view).first
     end
 
     def default_root_recording
       return unless defined?(RecordingStudio::Recording)
 
-      RecordingStudio::Recording.find_by(parent_recording_id: nil)
+      active_recording_scope.find_by(parent_recording_id: nil)
     end
 
     def handle_forbidden_access

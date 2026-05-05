@@ -10,20 +10,14 @@ module RecordingStudioCategorisable
   # - Belongs to a target recordable via RecordingStudio parent_recording
   #
   class CategoryAssignment < ApplicationRecord
+    include RecordingBacked
+
     self.table_name = "recording_studio_categorisable_category_assignments"
 
     validates :category_item_recording_id, presence: true
 
     # Validate that the category item recording exists and is the right type
     validate :category_item_recording_must_exist
-
-    # Get the RecordingStudio::Recording wrapper for this assignment
-    def recording
-      @recording ||= RecordingStudio::Recording.find_by(
-        recordable_type: self.class.name,
-        recordable_id: id
-      )
-    end
 
     # Get the category item recording reference
     def category_item_recording

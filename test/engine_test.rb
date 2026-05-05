@@ -93,6 +93,52 @@ class EngineTest < Minitest::Test
     assert_equal "ok", RecordingStudioCategorisable.configuration.api_key
   end
 
+  def test_load_config_logs_warning_when_yaml_merge_fails
+    app = Struct.new(:config) do
+      def config_for(_name)
+        { api_key: "from_yaml" }
+      end
+    end.new(Struct.new(:x).new(nil))
+
+    warnings = []
+    logger = Object.new
+    logger.define_singleton_method(:warn) { |message| warnings << message }
+
+    Rails.stub(:logger, logger) do
+      RecordingStudioCategorisable.configuration.stub(:merge!, ->(_value) { raise "boom" }) do
+        find_initializer("recording_studio_categorisable.load_config").block.call(app)
+      end
+    end
+
+    assert warnings.any? { |message| message.include?("config_for(:recording_studio_categorisable)") }
+  end
+
+  def test_load_config_logs_warning_when_x_config_merge_fails
+    xcfg = { enable_feature_x: true }
+    app_config = Struct.new(:x).new(Struct.new(:recording_studio_categorisable).new(xcfg))
+    app = Struct.new(:config) do
+      def config_for(_name)
+        nil
+      end
+    end.new(app_config)
+
+    warnings = []
+    logger = Object.new
+    logger.define_singleton_method(:warn) { |message| warnings << message }
+
+    merge_calls = 0
+    Rails.stub(:logger, logger) do
+      RecordingStudioCategorisable.configuration.stub(:merge!, lambda { |_value|
+        merge_calls += 1
+        raise "x config failure" if merge_calls > 1
+      }) do
+        find_initializer("recording_studio_categorisable.load_config").block.call(app)
+      end
+    end
+
+    assert warnings.any? { |message| message.include?("config.x.recording_studio_categorisable") }
+  end
+
   def test_apply_extension_initializers_register_active_support_on_load_callbacks
     to_prepare_blocks = []
     config_stub = Object.new
