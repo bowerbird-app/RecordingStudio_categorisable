@@ -8,19 +8,21 @@ module RecordingStudioCategorisable
     def index
       return unless ensure_authorized!(@parent_recording, role: :view)
 
-      @category_group_recordings = active_recordings(@parent_recording.child_recordings)
-                                     .where(recordable_type: CategoryGroup.name)
-                                     .includes(:recordable)
-                                     .sort_by { |recording| recording.recordable&.label.to_s.downcase }
+      category_group_recordings = active_recordings(@parent_recording.child_recordings)
+      @category_group_recordings = category_group_recordings
+                                   .where(recordable_type: CategoryGroup.name)
+                                   .includes(:recordable)
+                                   .sort_by { |recording| recording.recordable&.label.to_s.downcase }
     end
 
     def show
       return unless ensure_authorized!(@category_group_recording, role: :view)
 
-      @category_items = active_recordings(@category_group_recording.child_recordings)
-                          .where(recordable_type: CategoryItem.name)
-                          .includes(:recordable)
-                          .sort_by { |recording| recording.recordable&.label.to_s.downcase }
+      category_items = active_recordings(@category_group_recording.child_recordings)
+      @category_items = category_items
+                        .where(recordable_type: CategoryItem.name)
+                        .includes(:recordable)
+                        .sort_by { |recording| recording.recordable&.label.to_s.downcase }
     end
 
     def new

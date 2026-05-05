@@ -21,6 +21,7 @@ Metrics/ClassLength:
   Exclude:
     - 'test/**/*'
     - 'lib/recording_studio_categorisable/hooks.rb'
+    - 'lib/recording_studio_categorisable/engine.rb'
 
 Metrics/MethodLength:
   Exclude:

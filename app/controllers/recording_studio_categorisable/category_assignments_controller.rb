@@ -67,11 +67,15 @@ module RecordingStudioCategorisable
 
     def available_category_items
       root_recording = root_recording_for(@target_recording)
+
       active_recording_scope
         .where(root_recording_id: root_recording&.id, recordable_type: CategoryItem.name)
         .includes(:recordable)
         .sort_by do |recording|
-        [recording.recordable&.category_group&.label.to_s.downcase, recording.recordable&.label.to_s.downcase]
+          [
+            recording.recordable&.category_group&.label.to_s.downcase,
+            recording.recordable&.label.to_s.downcase
+          ]
         end
     end
   end

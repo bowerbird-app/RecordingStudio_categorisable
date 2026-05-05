@@ -41,18 +41,28 @@ module RecordingStudioCategorisable
     def remove_category(category_item, actor: nil)
       return false unless category_item.is_a?(CategoryItem) && category_item.recording
 
-      assignment_recording = category_assignment_recordings.find do |recording_item|
-        recording_item.recordable&.category_item_recording_id == category_item.recording.id
-      end
+      assignment_recording = find_category_assignment_recording(category_item)
 
       return false unless assignment_recording
 
+      trash_category_assignment_recording(assignment_recording, actor: actor)
+      true
+    end
+
+    private
+
+    def find_category_assignment_recording(category_item)
+      category_assignment_recordings.find do |recording_item|
+        recording_item.recordable&.category_item_recording_id == category_item.recording.id
+      end
+    end
+
+    def trash_category_assignment_recording(assignment_recording, actor:)
       if assignment_recording.respond_to?(:recording_studio_trashable_trash!)
         assignment_recording.recording_studio_trashable_trash!(actor: actor)
       else
         (assignment_recording.root_recording || assignment_recording).trash(assignment_recording, actor: actor)
       end
-      true
     end
   end
 end

@@ -16,7 +16,6 @@ class RecordingBackedTest < Minitest::Test
   end
 
   def test_recording_looks_up_wrapper_by_type_and_id
-    wrapper = Object.new
     recording_class = Class.new do
       class << self
         attr_accessor :received

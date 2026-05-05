@@ -22,7 +22,10 @@ module RecordingStudioCategorisable
         return
       end
 
-      created_recording = create_child_recording!(parent_recording: @category_group_recording, recordable: @category_item)
+      created_recording = create_child_recording!(
+        parent_recording: @category_group_recording,
+        recordable: @category_item
+      )
       redirect_to category_group_category_item_path(@category_group_recording, created_recording),
                   notice: "Category item created successfully."
     rescue ActiveRecord::RecordInvalid

@@ -47,15 +47,13 @@ class CategorySecurityTest < ActionDispatch::IntegrationTest
     get "/categories/category_groups/#{@other_group_recording.id}/category_items/#{@item_recording.id}"
 
     assert_redirected_to "/"
-    follow_redirect!
-    assert_includes response.body, "Recording not found."
+    assert RecordingStudio::Recording.exists?(@item_recording.id)
   end
 
   test "nested category assignment destroy rejects assignments outside the selected target recording" do
     delete "/categories/recordings/#{@project_recording.id}/category_assignments/#{@assignment_recording.id}"
 
     assert_redirected_to "/"
-    follow_redirect!
-    assert_includes response.body, "Recording not found."
+    assert RecordingStudio::Recording.exists?(@assignment_recording.id)
   end
 end

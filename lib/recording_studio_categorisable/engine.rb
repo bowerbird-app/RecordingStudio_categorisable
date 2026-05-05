@@ -3,7 +3,6 @@
 module RecordingStudioCategorisable
   class Engine < ::Rails::Engine
     isolate_namespace RecordingStudioCategorisable
-
     class << self
       def apply_model_extensions(target)
         extensions = RecordingStudioCategorisable.configuration.hooks.model_extensions_for(extension_keys_for(target))
@@ -42,6 +41,40 @@ module RecordingStudioCategorisable
         {}.compare_by_identity
       end
 
+      def load_yaml_configuration(app)
+        return unless app.respond_to?(:config_for)
+
+        yaml = begin
+          app.config_for(:recording_studio_categorisable)
+        rescue StandardError
+          nil
+        end
+        RecordingStudioCategorisable.configuration.merge!(yaml) if yaml.respond_to?(:each)
+      rescue StandardError => e
+        log_configuration_warning("config_for(:recording_studio_categorisable)", e)
+      end
+
+      def load_x_configuration(app)
+        return unless app.config.respond_to?(:x) && app.config.x.respond_to?(:recording_studio_categorisable)
+
+        xcfg = app.config.x.recording_studio_categorisable
+        if xcfg.respond_to?(:to_h)
+          RecordingStudioCategorisable.configuration.merge!(xcfg.to_h)
+        else
+          load_x_configuration_from_each_pair(xcfg)
+        end
+      rescue StandardError => e
+        log_configuration_warning("config.x.recording_studio_categorisable", e)
+      end
+
+      def load_x_configuration_from_each_pair(xcfg)
+        hash = {}
+        xcfg.each_pair { |key, value| hash[key] = value } if xcfg.respond_to?(:each_pair)
+        RecordingStudioCategorisable.configuration.merge!(hash) if hash.any?
+      rescue StandardError => e
+        log_configuration_warning("config.x.recording_studio_categorisable", e)
+      end
+
       def log_configuration_warning(source, error)
         return unless defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
 
@@ -51,54 +84,21 @@ module RecordingStudioCategorisable
       end
     end
 
-    # Run before_initialize hooks
     initializer "recording_studio_categorisable.before_initialize",
                 before: "recording_studio_categorisable.load_config" do |_app|
       RecordingStudioCategorisable::Hooks.run(:before_initialize, self)
     end
 
     initializer "recording_studio_categorisable.load_config" do |app|
-      # Load config/recording_studio_categorisable.yml via Rails config_for if present
-      if app.respond_to?(:config_for)
-        begin
-          yaml = begin
-            app.config_for(:recording_studio_categorisable)
-          rescue StandardError
-            nil
-          end
-          RecordingStudioCategorisable.configuration.merge!(yaml) if yaml.respond_to?(:each)
-        rescue StandardError => e
-          log_configuration_warning("config_for(:recording_studio_categorisable)", e)
-        end
-      end
-
-      # Merge Rails.application.config.x.recording_studio_categorisable if present
-      if app.config.respond_to?(:x) && app.config.x.respond_to?(:recording_studio_categorisable)
-        xcfg = app.config.x.recording_studio_categorisable
-        if xcfg.respond_to?(:to_h)
-          RecordingStudioCategorisable.configuration.merge!(xcfg.to_h)
-        else
-          begin
-            # try converting OrderedOptions
-            hash = {}
-            xcfg.each_pair { |k, v| hash[k] = v } if xcfg.respond_to?(:each_pair)
-            RecordingStudioCategorisable.configuration.merge!(hash) if hash&.any?
-          rescue StandardError => e
-            log_configuration_warning("config.x.recording_studio_categorisable", e)
-          end
-        end
-      end
-
-      # Run on_configuration hooks after config is loaded
+      RecordingStudioCategorisable::Engine.send(:load_yaml_configuration, app)
+      RecordingStudioCategorisable::Engine.send(:load_x_configuration, app)
       RecordingStudioCategorisable::Hooks.run(:on_configuration, RecordingStudioCategorisable.configuration)
     end
 
-    # Run after_initialize hooks
     initializer "recording_studio_categorisable.after_initialize",
                 after: "recording_studio_categorisable.load_config" do |_app|
       RecordingStudioCategorisable::Hooks.run(:after_initialize, self)
     end
-
     initializer "recording_studio_categorisable.optional_integrations",
                 after: "recording_studio_categorisable.after_initialize" do
       config.to_prepare do
@@ -106,7 +106,6 @@ module RecordingStudioCategorisable
       end
     end
 
-    # Apply model extensions when models are loaded
     initializer "recording_studio_categorisable.apply_model_extensions" do
       config.to_prepare do
         next unless defined?(ActiveRecord::Base)
@@ -119,7 +118,6 @@ module RecordingStudioCategorisable
       end
     end
 
-    # Apply controller extensions
     initializer "recording_studio_categorisable.apply_controller_extensions" do
       config.to_prepare do
         next unless defined?(ActionController::Base)

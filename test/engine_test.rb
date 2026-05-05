@@ -110,7 +110,9 @@ class EngineTest < Minitest::Test
       end
     end
 
-    assert warnings.any? { |message| message.include?("config_for(:recording_studio_categorisable)") }
+    assert(
+      warnings.any? { |message| message.include?("config_for(:recording_studio_categorisable)") }
+    )
   end
 
   def test_load_config_logs_warning_when_x_config_merge_fails
@@ -126,17 +128,15 @@ class EngineTest < Minitest::Test
     logger = Object.new
     logger.define_singleton_method(:warn) { |message| warnings << message }
 
-    merge_calls = 0
     Rails.stub(:logger, logger) do
-      RecordingStudioCategorisable.configuration.stub(:merge!, lambda { |_value|
-        merge_calls += 1
-        raise "x config failure" if merge_calls > 1
-      }) do
+      RecordingStudioCategorisable.configuration.stub(:merge!, ->(_value) { raise "x config failure" }) do
         find_initializer("recording_studio_categorisable.load_config").block.call(app)
       end
     end
 
-    assert warnings.any? { |message| message.include?("config.x.recording_studio_categorisable") }
+    assert(
+      warnings.any? { |message| message.include?("config.x.recording_studio_categorisable") }
+    )
   end
 
   def test_apply_extension_initializers_register_active_support_on_load_callbacks

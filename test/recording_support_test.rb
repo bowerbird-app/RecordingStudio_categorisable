@@ -40,10 +40,15 @@ class RecordingSupportTest < Minitest::Test
     parent_recording.expect(
       :record,
       :created,
-      [recordable, { actor: "actor", parent_recording: parent_recording }]
+      [recordable],
+      actor: "actor",
+      parent_recording: parent_recording
     )
 
-    assert_equal :created, @controller.create_child_recording!(parent_recording: parent_recording, recordable: recordable)
+    assert_equal(
+      :created,
+      @controller.create_child_recording!(parent_recording: parent_recording, recordable: recordable)
+    )
     parent_recording.verify
   end
 
@@ -100,7 +105,7 @@ class RecordingSupportTest < Minitest::Test
     root = Minitest::Mock.new
     recording = Struct.new(:root_recording).new(root)
 
-    root.expect(:trash, :trashed, [recording, { actor: "actor" }])
+    root.expect(:trash, :trashed, [recording], actor: "actor")
 
     assert_equal :trashed, @controller.trash_recording!(recording: recording)
     root.verify
@@ -108,7 +113,7 @@ class RecordingSupportTest < Minitest::Test
 
   def test_find_child_recording_uses_active_scope_and_type_filter
     active_relation = Minitest::Mock.new
-    active_relation.expect(:find_by!, :found, [{ id: "123", recordable_type: "ExampleType" }])
+    active_relation.expect(:find_by!, :found, [], id: "123", recordable_type: "ExampleType")
 
     child_relation = Object.new
     child_relation.define_singleton_method(:recording_studio_trashable_active) { active_relation }
