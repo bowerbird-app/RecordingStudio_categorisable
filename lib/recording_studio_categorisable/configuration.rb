@@ -4,20 +4,13 @@ require_relative "hooks"
 
 module RecordingStudioCategorisable
   class Configuration
-    attr_accessor :ui_title, :root_recording_resolver
+    attr_accessor :ui_title, :root_recording_resolver, :authorization_resolver
     attr_reader :hooks, :categorisable_registrations
 
     def initialize
       @ui_title = "Categories"
       @hooks = Hooks.new
       @categorisable_registrations = {}
-      @root_recording_resolver = lambda do |controller|
-        if controller.respond_to?(:current_root_recording, true)
-          controller.send(:current_root_recording)
-        elsif defined?(RecordingStudio::Recording)
-          RecordingStudio::Recording.unscoped.find_by(parent_recording_id: nil)
-        end
-      end
     end
 
     def to_h
@@ -42,6 +35,14 @@ module RecordingStudioCategorisable
 
     def resolve_root_recording(controller)
       root_recording_resolver&.call(controller)
+    end
+
+    def authorize!(controller)
+      raise MissingAuthorizationError, "Authorization is required for RecordingStudioCategorisable" unless authorization_resolver
+
+      return if authorization_resolver.call(controller)
+
+      raise UnauthorizedError, "You are not authorized to manage categories"
     end
 
     def merge!(hash)

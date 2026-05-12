@@ -7,6 +7,10 @@ RecordingStudioCategorisable.configure do |config|
   # Resolve the current root recording used by the engine UI.
   # config.root_recording_resolver = ->(controller) { controller.send(:current_root_recording) }
 
+  # Required unless your ApplicationController defines
+  # `authorize_recording_studio_categorisable!`.
+  # config.authorization_resolver = ->(controller) { controller.current_user.present? }
+
   # Explicitly register categorisable recordables if you prefer initializer-based configuration.
   # config.register_categorisable("Page") do |registration|
   #   registration.single_select :status_category_item_recording_id, category_group_slug: "page-status"

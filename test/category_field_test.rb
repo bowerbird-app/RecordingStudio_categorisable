@@ -40,4 +40,33 @@ class CategoryFieldTest < Minitest::Test
 
     assert_equal %w[alpha beta], received_value
   end
+
+  def test_resolve_group_recording_raises_when_slug_is_ambiguous
+    field = RecordingStudioCategorisable::CategoryField.new(
+      attribute_name: :status_category_item_recording_id,
+      selection: :single,
+      category_group_slug: "page-status"
+    )
+
+    group = Struct.new(:slug)
+    relation = Struct.new(:records) do
+      def includes(*)
+        records
+      end
+    end.new([
+      Struct.new(:recordable).new(group.new("page-status")),
+      Struct.new(:recordable).new(group.new("page-status"))
+    ])
+    root_recording = Struct.new(:recordings) do
+      def recordings_query(include_children:, type:)
+        recordings
+      end
+    end.new(relation)
+
+    error = assert_raises(RecordingStudioCategorisable::AmbiguousCategoryGroupError) do
+      field.resolve_group_recording(root_recording: root_recording)
+    end
+
+    assert_match("multiple category groups share slug", error.message)
+  end
 end

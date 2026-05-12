@@ -32,4 +32,8 @@ class ApplicationController < ActionController::Base
       parent_recording_id: nil
     )
   end
+
+  def authorize_recording_studio_categorisable!
+    current_user.present?
+  end
 end

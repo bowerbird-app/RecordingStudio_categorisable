@@ -3,6 +3,7 @@
 module RecordingStudioCategorisable
   class ApplicationController < (defined?(::ApplicationController) ? ::ApplicationController : ActionController::Base)
     protect_from_forgery with: :exception
+    before_action :authorize_recording_studio_categorisable_access!
 
     helper_method :current_root_recording, :parent_recording_options
 
@@ -11,10 +12,7 @@ module RecordingStudioCategorisable
     def current_root_recording
       return super if defined?(super)
 
-      configuration = RecordingStudioCategorisable.configuration
-      resolver = configuration.resolve_root_recording(self)
-
-      @current_root_recording ||= resolver.tap do |root_recording|
+      @current_root_recording ||= RecordingStudioCategorisable.configuration.resolve_root_recording(self).tap do |root_recording|
         if root_recording.blank?
           raise MissingRootRecordingError,
                 "A root recording resolver is required for RecordingStudioCategorisable"
@@ -27,6 +25,17 @@ module RecordingStudioCategorisable
         .recordings_query(include_children: true, type: recordable_type)
         .includes(:recordable)
         .find(params[:id])
+    end
+
+    def authorize_recording_studio_categorisable_access!
+      return super if defined?(super)
+      if respond_to?(:authorize_recording_studio_categorisable!, true)
+        return if authorize_recording_studio_categorisable!
+
+        raise UnauthorizedError, "You are not authorized to manage categories"
+      end
+
+      RecordingStudioCategorisable.configuration.authorize!(self)
     end
 
     def parent_recording_options

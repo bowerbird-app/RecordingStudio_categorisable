@@ -72,10 +72,14 @@ module RecordingStudioCategorisable
         return group_resolver.call(root_recording: root_recording, recordable: recordable, field: self)
       end
 
-      root_recording
+      group_recordings = root_recording
         .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
         .includes(:recordable)
-        .find { |recording| recording.recordable.slug == category_group_slug }
+        .select { |recording| recording.recordable.slug == category_group_slug }
+
+      raise AmbiguousCategoryGroupError, "multiple category groups share slug #{category_group_slug.inspect}" if group_recordings.many?
+
+      group_recordings.first
     end
 
     def available_item_recordings(root_recording:, recordable: nil)

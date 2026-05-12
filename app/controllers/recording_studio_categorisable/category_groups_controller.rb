@@ -30,7 +30,7 @@ module RecordingStudioCategorisable
     def create
       parent_recording = selected_parent_recording
       category_group_recording = current_root_recording.record(CategoryGroup,
-                                                               parent_recording: parent_recording) do |group|
+                                                                parent_recording: parent_recording) do |group|
         assign_category_group_attributes(group)
       end
 
@@ -46,7 +46,7 @@ module RecordingStudioCategorisable
 
     def update
       current_root_recording.revise(@category_group_recording) do |group|
-        assign_category_group_attributes(group)
+        assign_category_group_attributes(group, exclude_recording_id: @category_group_recording.id)
       end
 
       @category_group_recording.update!(parent_recording: selected_parent_recording)
@@ -71,9 +71,10 @@ module RecordingStudioCategorisable
 
     private
 
-    def assign_category_group_attributes(group)
+    def assign_category_group_attributes(group, exclude_recording_id: nil)
       group.assign_attributes(category_group_params)
       group.slug = group.slug.parameterize if group.slug.present?
+      validate_unique_slug!(group, exclude_recording_id: exclude_recording_id)
     end
 
     def category_group_params
@@ -95,6 +96,20 @@ module RecordingStudioCategorisable
 
     def set_usage_report
       @usage_report = UsageReport.new
+    end
+
+    def validate_unique_slug!(group, exclude_recording_id: nil)
+      duplicate_group = current_root_recording
+                        .recordings_query(include_children: true, type: CategoryGroup)
+                        .includes(:recordable)
+                        .find do |recording|
+        recording.id != exclude_recording_id && recording.recordable.slug == group.slug
+      end
+
+      return unless duplicate_group
+
+      group.errors.add(:slug, "has already been taken within this root")
+      raise ActiveRecord::RecordInvalid, group
     end
 
     def destroy_blocked_message(label, usage_count)

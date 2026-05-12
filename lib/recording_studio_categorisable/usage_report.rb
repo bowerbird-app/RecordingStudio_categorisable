@@ -12,14 +12,16 @@ module RecordingStudioCategorisable
     end
 
     def group_usage_count(group_recording)
-      group_recording
-        .child_recordings
-        .of_type(RecordingStudioCategorisable::CategoryItem)
+      descendant_item_recordings(group_recording)
         .sum { |item_recording| item_usage_count(item_recording) }
     end
 
     def in_use?(recording_or_id)
       item_usage_count(recording_or_id).positive?
+    end
+
+    def group_in_use?(group_recording)
+      group_usage_count(group_recording).positive?
     end
 
     private
@@ -45,6 +47,19 @@ module RecordingStudioCategorisable
           end
         end
       end
+    end
+
+    def descendant_item_recordings(group_recording)
+      descendants = []
+      queue = group_recording.child_recordings.includes(:recordable).to_a
+
+      until queue.empty?
+        recording = queue.shift
+        descendants << recording if recording.recordable.is_a?(RecordingStudioCategorisable::CategoryItem)
+        queue.concat(recording.child_recordings.includes(:recordable).to_a)
+      end
+
+      descendants
     end
   end
 end

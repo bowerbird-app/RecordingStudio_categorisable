@@ -47,7 +47,7 @@ The registration powers:
 
 ## Mounted UI
 
-Mount the engine and expose a current root recording resolver:
+Mount the engine and expose root-resolution plus authorization for category management:
 
 ```ruby
 # config/routes.rb
@@ -59,8 +59,12 @@ mount RecordingStudioCategorisable::Engine, at: "/recording_studio_categorisable
 RecordingStudioCategorisable.configure do |config|
   config.ui_title = "Categories"
   config.root_recording_resolver = ->(controller) { controller.send(:current_root_recording) }
+  config.authorization_resolver = ->(controller) { controller.current_user.present? }
 end
 ```
+
+If your host `ApplicationController` already defines `current_root_recording` and
+`authorize_recording_studio_categorisable!`, the engine will use those methods instead.
 
 The mounted UI supports:
 

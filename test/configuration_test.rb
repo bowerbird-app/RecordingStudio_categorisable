@@ -42,6 +42,18 @@ class ConfigurationTest < Minitest::Test
     assert_equal ["Page"], result.fetch(:categorisable_registrations)
   end
 
+  def test_authorize_raises_when_no_authorization_resolver_is_configured
+    error = assert_raises(RecordingStudioCategorisable::MissingAuthorizationError) do
+      @configuration.authorize!(Object.new)
+    end
+
+    assert_match("Authorization is required", error.message)
+  end
+
+  def test_resolve_root_recording_defaults_to_nil
+    assert_nil @configuration.resolve_root_recording(Object.new)
+  end
+
   def test_configure_without_block_is_safe
     RecordingStudioCategorisable.configure
 
