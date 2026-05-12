@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module RecordingStudioCategorisable
+  # rubocop:disable Metrics/ClassLength
   class CategoryField
     SELECTIONS = %i[single multiple].freeze
 
@@ -72,12 +73,12 @@ module RecordingStudioCategorisable
         return group_resolver.call(root_recording: root_recording, recordable: recordable, field: self)
       end
 
-      group_recordings = root_recording
-        .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
-        .includes(:recordable)
-        .select { |recording| recording.recordable.slug == category_group_slug }
+      group_recordings = group_recordings_for(root_recording)
 
-      raise AmbiguousCategoryGroupError, "multiple category groups share slug #{category_group_slug.inspect}" if group_recordings.many?
+      if group_recordings.many?
+        raise AmbiguousCategoryGroupError,
+              "multiple category groups share slug #{category_group_slug.inspect}"
+      end
 
       group_recordings.first
     end
@@ -98,6 +99,15 @@ module RecordingStudioCategorisable
 
     def normalize_multiple(raw_value)
       Array(raw_value).flatten.compact.map(&:presence).compact.uniq
+    end
+
+    def group_recordings_for(root_recording)
+      root_recording.recordings_query(
+        include_children: true,
+        type: RecordingStudioCategorisable::CategoryGroup
+      ).includes(:recordable).select do |recording|
+        recording.recordable.slug == category_group_slug
+      end
     end
 
     def validate!
@@ -126,4 +136,5 @@ module RecordingStudioCategorisable
         .includes(:recordable)
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

@@ -29,10 +29,7 @@ module RecordingStudioCategorisable
 
     def create
       parent_recording = selected_parent_recording
-      category_group_recording = current_root_recording.record(CategoryGroup,
-                                                                parent_recording: parent_recording) do |group|
-        assign_category_group_attributes(group)
-      end
+      category_group_recording = create_category_group_recording(parent_recording)
 
       redirect_to category_group_path(category_group_recording), notice: "Category group created."
     rescue ActiveRecord::RecordInvalid
@@ -75,6 +72,15 @@ module RecordingStudioCategorisable
       group.assign_attributes(category_group_params)
       group.slug = group.slug.parameterize if group.slug.present?
       validate_unique_slug!(group, exclude_recording_id: exclude_recording_id)
+    end
+
+    def create_category_group_recording(parent_recording)
+      current_root_recording.record(
+        CategoryGroup,
+        parent_recording: parent_recording
+      ) do |group|
+        assign_category_group_attributes(group)
+      end
     end
 
     def category_group_params

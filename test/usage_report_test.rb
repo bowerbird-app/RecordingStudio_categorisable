@@ -34,7 +34,7 @@ class UsageReportTest < Minitest::Test
     end
 
     def to_a
-      records
+      records.dup
     end
   end
 
@@ -78,6 +78,10 @@ class UsageReportTest < Minitest::Test
       FakeRelation.new([FakeRecording.new(page_struct.new("nested-item"))]),
       [field]
     )
+    defined_group_class = RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
+    defined_item_class = RecordingStudioCategorisable.const_defined?(:CategoryItem, false)
+    RecordingStudioCategorisable.const_set(:CategoryGroup, Class.new) unless defined_group_class
+    RecordingStudioCategorisable.const_set(:CategoryItem, Class.new) unless defined_item_class
     nested_item = Struct.new(:id, :recordable, :child_recordings).new(
       "nested-item",
       RecordingStudioCategorisable::CategoryItem.new,
@@ -93,5 +97,8 @@ class UsageReportTest < Minitest::Test
 
     assert_equal 1, report.group_usage_count(root_group)
     assert report.group_in_use?(root_group)
+  ensure
+    RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
+    RecordingStudioCategorisable.send(:remove_const, :CategoryItem) unless defined_item_class
   end
 end

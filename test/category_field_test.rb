@@ -53,20 +53,30 @@ class CategoryFieldTest < Minitest::Test
       def includes(*)
         records
       end
-    end.new([
-      Struct.new(:recordable).new(group.new("page-status")),
-      Struct.new(:recordable).new(group.new("page-status"))
-    ])
+    end.new(category_group_recordings(group))
     root_recording = Struct.new(:recordings) do
-      def recordings_query(include_children:, type:)
+      def recordings_query(**)
         recordings
       end
     end.new(relation)
+    defined_group_class = RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
+    RecordingStudioCategorisable.const_set(:CategoryGroup, Class.new) unless defined_group_class
 
     error = assert_raises(RecordingStudioCategorisable::AmbiguousCategoryGroupError) do
       field.resolve_group_recording(root_recording: root_recording)
     end
 
     assert_match("multiple category groups share slug", error.message)
+  ensure
+    RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
+  end
+
+  private
+
+  def category_group_recordings(group)
+    [
+      Struct.new(:recordable).new(group.new("page-status")),
+      Struct.new(:recordable).new(group.new("page-status"))
+    ]
   end
 end

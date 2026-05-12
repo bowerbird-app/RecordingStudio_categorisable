@@ -12,8 +12,10 @@ module RecordingStudioCategorisable
     def current_root_recording
       return super if defined?(super)
 
-      @current_root_recording ||= RecordingStudioCategorisable.configuration.resolve_root_recording(self).tap do |root_recording|
-        if root_recording.blank?
+      root_recording = RecordingStudioCategorisable.configuration.resolve_root_recording(self)
+
+      @current_root_recording ||= root_recording.tap do |resolved_root_recording|
+        if resolved_root_recording.blank?
           raise MissingRootRecordingError,
                 "A root recording resolver is required for RecordingStudioCategorisable"
         end
@@ -29,6 +31,7 @@ module RecordingStudioCategorisable
 
     def authorize_recording_studio_categorisable_access!
       return super if defined?(super)
+
       if respond_to?(:authorize_recording_studio_categorisable!, true)
         return if authorize_recording_studio_categorisable!
 

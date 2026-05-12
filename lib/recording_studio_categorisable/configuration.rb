@@ -38,7 +38,10 @@ module RecordingStudioCategorisable
     end
 
     def authorize!(controller)
-      raise MissingAuthorizationError, "Authorization is required for RecordingStudioCategorisable" unless authorization_resolver
+      unless authorization_resolver
+        raise MissingAuthorizationError,
+              "Authorization is required for RecordingStudioCategorisable"
+      end
 
       return if authorization_resolver.call(controller)
 
