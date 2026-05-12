@@ -1,0 +1,84 @@
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: RecordingStudioCategorisable.configuration.ui_title,
+    subtitle: "Manage category groups and their items across the current recording tree.",
+    variant: :h1
+  ) do |title| %>
+    <% title.actions do %>
+      <%= render FlatPack::Button::Component.new(
+        text: "New category group",
+        style: :primary,
+        url: new_category_group_path
+      ) %>
+    <% end %>
+  <% end %>
+
+  <div class="grid gap-6">
+    <% @category_group_recordings.each do |category_group_recording| %>
+      <% category_group = category_group_recording.recordable %>
+      <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+        <% card.header do %>
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="space-y-2">
+              <%= render FlatPack::PageTitle::Component.new(
+                title: category_group.name,
+                subtitle: category_group.description.presence || "No description yet.",
+                variant: :h3,
+                class: "mb-0 pb-0"
+              ) %>
+
+              <div class="flex flex-wrap gap-2">
+                <%= render FlatPack::Badge::Component.new(text: category_group.slug, style: :info, size: :sm) %>
+                <%= render FlatPack::Badge::Component.new(
+                  text: "#{@usage_report.group_usage_count(category_group_recording)} uses",
+                  style: @usage_report.group_usage_count(category_group_recording).positive? ? :warning : :success,
+                  size: :sm
+                ) %>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <%= render FlatPack::Button::Component.new(
+                text: "View",
+                style: :secondary,
+                url: category_group_path(category_group_recording)
+              ) %>
+              <%= render FlatPack::Button::Component.new(
+                text: "Edit",
+                style: :ghost,
+                url: edit_category_group_path(category_group_recording)
+              ) %>
+            </div>
+          </div>
+        <% end %>
+
+        <% card.body do %>
+          <dl class="grid gap-4 text-sm md:grid-cols-3">
+            <div>
+              <dt class="text-[var(--surface-muted-content-color)]">Recording location</dt>
+              <dd class="font-medium"><%= category_group_recording.parent_recording&.recordable&.try(:name) || category_group_recording.parent_recording&.recordable&.try(:title) || "Root" %></dd>
+            </div>
+            <div>
+              <dt class="text-[var(--surface-muted-content-color)]">Items</dt>
+              <dd class="font-medium"><%= category_group_recording.child_recordings.of_type(RecordingStudioCategorisable::CategoryItem).count %></dd>
+            </div>
+            <div>
+              <dt class="text-[var(--surface-muted-content-color)]">Updated</dt>
+              <dd class="font-medium"><%= l(category_group.updated_at, format: :long) %></dd>
+            </div>
+          </dl>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <% if @category_group_recordings.empty? %>
+      <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
+        <% card.body do %>
+          <p class="text-sm text-[var(--surface-muted-content-color)]">
+            No category groups have been created yet.
+          </p>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

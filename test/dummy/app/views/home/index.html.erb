@@ -1,7 +1,7 @@
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: @workspace&.name || "Recording Studio addon template",
-    subtitle: "Use this dummy app to validate authentication, root recording setup, and addon UI wiring before you rename the engine.",
+    subtitle: "Use this dummy app to validate authentication, root recording setup, category management, and page edit flows.",
     variant: :h1
   ) %>
 
@@ -16,22 +16,22 @@
         ) %>
       <% end %>
 
-      <% card.body do %>
-        <ol class="space-y-4 text-sm leading-6 text-[var(--surface-content-color)]">
-          <li>
-            Rename the gem with <code>bin/rename_gem your_addon_name</code> once the engine structure looks right.
-          </li>
-          <li>
-            Replace the sample migration with your addon's real tables and then run <code>rails generate gem_template:migrations</code> in the host app.
-          </li>
-          <li>
-            Register your recordable types in <code>test/dummy/config/initializers/recording_studio.rb</code> and add capabilities only where they are needed.
-          </li>
-          <li>
-            Use this dummy app to check layout, authentication, Tailwind sources, and root recording behavior before shipping the engine.
-          </li>
-        </ol>
-      <% end %>
+        <% card.body do %>
+          <ol class="space-y-4 text-sm leading-6 text-[var(--surface-content-color)]">
+            <li>
+              Manage category groups and items at <code>/recording_studio_categorisable</code>.
+            </li>
+            <li>
+              Edit the seeded demo page at <code>/pages</code> to exercise one single-select and one multi-select category field.
+            </li>
+            <li>
+              Register categorisable recordables explicitly so usage counting never guesses from the database.
+            </li>
+            <li>
+              Use this dummy app to check layout, authentication, Tailwind sources, root recording behavior, and usage-aware destructive actions.
+            </li>
+          </ol>
+        <% end %>
     <% end %>
 
     <div class="flex flex-col gap-6">
@@ -59,6 +59,10 @@
               <dt class="text-[var(--surface-muted-content-color)]">Signed in as</dt>
               <dd class="font-medium"><%= current_user.email %></dd>
             </div>
+            <div>
+              <dt class="text-[var(--surface-muted-content-color)]">Category groups</dt>
+              <dd class="font-medium"><%= @category_group_count %></dd>
+            </div>
           </dl>
         <% end %>
       <% end %>
@@ -77,10 +81,42 @@
           <div class="space-y-3 text-sm">
             <p><strong>App home:</strong> <code>/</code></p>
             <p><strong>Recording Studio mount:</strong> <code>/recording_studio</code></p>
+            <p><strong>Categories mount:</strong> <code>/recording_studio_categorisable</code></p>
+            <p><strong>Page editor:</strong> <code>/pages</code></p>
             <p><strong>Health check:</strong> <code>/up</code></p>
           </div>
         <% end %>
       <% end %>
     </div>
   </div>
+
+  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+    <% card.header do %>
+      <%= render FlatPack::PageTitle::Component.new(
+        title: "Seeded pages",
+        subtitle: "The page edit flow demonstrates single-select and multi-select category fields backed by category item recording IDs.",
+        variant: :h3,
+        class: "mb-0 pb-0"
+      ) %>
+    <% end %>
+
+    <% card.body do %>
+      <div class="space-y-3 text-sm">
+        <% @page_recordings.each do |page_recording| %>
+          <div class="flex items-center justify-between gap-4 rounded-lg border border-[var(--card-border-color)] p-4">
+            <div>
+              <div class="font-medium"><%= page_recording.recordable.title %></div>
+              <div class="text-[var(--surface-muted-content-color)]"><%= truncate(page_recording.recordable.body, length: 80) %></div>
+            </div>
+
+            <%= render FlatPack::Button::Component.new(
+              text: "Edit page",
+              style: :secondary,
+              url: edit_page_path(page_recording)
+            ) %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
 </div>

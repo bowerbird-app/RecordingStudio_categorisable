@@ -1,0 +1,43 @@
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Pages",
+    subtitle: "Pages are recordables whose category assignments store category item recording IDs.",
+    variant: :h1
+  ) do |title| %>
+    <% title.actions do %>
+      <%= render FlatPack::Button::Component.new(text: "New page", style: :primary, url: new_page_path) %>
+    <% end %>
+  <% end %>
+
+  <div class="grid gap-6">
+    <% @page_recordings.each do |page_recording| %>
+      <% page = page_recording.recordable %>
+      <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+        <% card.header do %>
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <%= render FlatPack::PageTitle::Component.new(
+              title: page.title,
+              subtitle: truncate(page.body, length: 120),
+              variant: :h3,
+              class: "mb-0 pb-0"
+            ) %>
+
+            <%= render FlatPack::Button::Component.new(text: "Edit", style: :secondary, url: edit_page_path(page_recording)) %>
+          </div>
+        <% end %>
+
+        <% card.body do %>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <% if page.status_category_item_recording_id.present? %>
+              <%= render FlatPack::Badge::Component.new(text: "Status set", style: :info, size: :sm) %>
+            <% end %>
+
+            <% if page.topic_category_item_recording_ids.present? %>
+              <%= render FlatPack::Badge::Component.new(text: "#{page.topic_category_item_recording_ids.size} topics", style: :success, size: :sm) %>
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

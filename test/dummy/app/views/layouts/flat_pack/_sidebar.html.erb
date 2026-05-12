@@ -22,6 +22,18 @@
       ) %>
 
       <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Categories",
+        href: "/recording_studio_categorisable",
+        icon: :tag
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Pages",
+        href: "/pages",
+        icon: :file_text
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
         label: "Health",
         href: "/up",
         icon: :activity
@@ -34,7 +46,7 @@
     <%= render FlatPack::Sidebar::Footer::Component.new(class: "text-sm text-[var(--surface-muted-content-color)]") do %>
       <%= render FlatPack::Sidebar::Item::Component.new(
         label: "Sign out",
-        href: destroy_user_session_path,
+        href: main_app.destroy_user_session_path,
         icon: :lock,
         class: "mx-0",
         data: { turbo_method: :delete }

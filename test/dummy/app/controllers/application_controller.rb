@@ -10,6 +10,8 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!
   before_action :set_current_actor
 
+  helper_method :current_workspace, :current_root_recording
+
   private
 
   def application_layout
@@ -18,5 +20,16 @@ class ApplicationController < ActionController::Base
 
   def set_current_actor
     Current.actor = current_user
+  end
+
+  def current_workspace
+    @current_workspace ||= Workspace.first
+  end
+
+  def current_root_recording
+    @current_root_recording ||= RecordingStudio::Recording.unscoped.find_by(
+      recordable: current_workspace,
+      parent_recording_id: nil
+    )
   end
 end

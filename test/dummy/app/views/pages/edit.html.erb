@@ -1,0 +1,9 @@
+<div class="mx-auto w-full max-w-4xl">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Edit page",
+    subtitle: "Updating a page creates a new immutable recordable snapshot on the same recording.",
+    variant: :h1
+  ) %>
+
+  <%= render "form", page: @page, submit_text: "Save page" %>
+</div>

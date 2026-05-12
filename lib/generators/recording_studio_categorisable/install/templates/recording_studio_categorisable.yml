@@ -1,0 +1,5 @@
+development:
+  ui_title: "Categories"
+
+production:
+  ui_title: "Categories"
