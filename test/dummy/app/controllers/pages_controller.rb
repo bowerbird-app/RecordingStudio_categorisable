@@ -19,8 +19,8 @@ class PagesController < ApplicationController
     end
 
     redirect_to pages_path, notice: "Page created."
-  rescue ActiveRecord::RecordInvalid
-    @page = Page.new(page_params)
+  rescue ActiveRecord::RecordInvalid => error
+    @page = error.record
     load_category_fields
     render :new, status: :unprocessable_entity
   rescue RecordingStudioCategorisable::InvalidCategorySelectionError => error
@@ -44,9 +44,8 @@ class PagesController < ApplicationController
     end
 
     redirect_to pages_path, notice: "Page updated."
-  rescue ActiveRecord::RecordInvalid
-    @page = @page_recording.recordable.dup
-    @page.assign_attributes(page_params)
+  rescue ActiveRecord::RecordInvalid => error
+    @page = error.record
     load_category_fields
     render :edit, status: :unprocessable_entity
   rescue RecordingStudioCategorisable::InvalidCategorySelectionError => error

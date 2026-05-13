@@ -61,4 +61,67 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_includes response.body, "has already been taken within this root"
   end
+
+  test "invalid category group updates keep submitting to the update route" do
+    patch "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}", params: {
+      category_group: {
+        name: "",
+        slug: @status_group_recording.recordable.slug,
+        description: @status_group_recording.recordable.description,
+        parent_recording_id: @root_recording.id
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_match(
+      %r{action="/recording_studio_categorisable/category_groups/#{@status_group_recording.id}"},
+      response.body
+    )
+  end
+
+  test "invalid category item updates keep submitting to the update route" do
+    patch(
+      "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items/#{@published_item_recording.id}",
+      params: {
+        category_item: {
+          name: "",
+          slug: @published_item_recording.recordable.slug,
+          description: @published_item_recording.recordable.description,
+          position: @published_item_recording.recordable.position
+        }
+      }
+    )
+
+    assert_response :unprocessable_entity
+    assert_match(
+      %r{action="/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items/#{@published_item_recording.id}"},
+      response.body
+    )
+  end
+
+  test "category groups cannot be moved under their descendants" do
+    nested_group_recording = @root_recording.record(
+      RecordingStudioCategorisable::CategoryGroup,
+      parent_recording: @status_group_recording
+    ) do |group|
+      group.name = "Nested status"
+      group.slug = "nested-status"
+    end
+
+    patch "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}", params: {
+      category_group: {
+        name: @status_group_recording.recordable.name,
+        slug: @status_group_recording.recordable.slug,
+        description: @status_group_recording.recordable.description,
+        parent_recording_id: nested_group_recording.id
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes(
+      response.body,
+      "Category groups cannot be moved under themselves or their descendants"
+    )
+    assert_equal @root_recording.id, @status_group_recording.reload.parent_recording_id
+  end
 end

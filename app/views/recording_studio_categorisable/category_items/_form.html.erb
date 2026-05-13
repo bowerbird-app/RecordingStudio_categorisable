@@ -1,4 +1,4 @@
-<%= form_with model: category_item, url: category_item.persisted? ? category_group_category_item_path(@category_group_recording, @category_item_recording) : category_group_category_items_path(@category_group_recording) do |form| %>
+<%= form_with model: category_item, url: @category_item_recording ? category_group_category_item_path(@category_group_recording, @category_item_recording) : category_group_category_items_path(@category_group_recording) do |form| %>
   <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
     <% card.body do %>
       <div class="space-y-4">

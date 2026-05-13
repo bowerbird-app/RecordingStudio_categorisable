@@ -17,9 +17,9 @@ class PageEditFlowTest < ActionDispatch::IntegrationTest
 
   test "editing a page revises the recording and saves category item recording ids" do
     draft_item_recording = @status_group_recording.child_recordings
-                          .of_type(RecordingStudioCategorisable::CategoryItem)
-                          .includes(:recordable)
-                          .find { |recording| recording.recordable.slug == "draft" }
+                           .of_type(RecordingStudioCategorisable::CategoryItem)
+                           .includes(:recordable)
+                           .find { |recording| recording.recordable.slug == "draft" }
     launch_item_recording = @topics_group_recording.child_recordings
                            .of_type(RecordingStudioCategorisable::CategoryItem)
                            .includes(:recordable)
@@ -43,5 +43,21 @@ class PageEditFlowTest < ActionDispatch::IntegrationTest
     assert_equal "Updated studio launch plan", @page_recording.recordable.title
     assert_equal draft_item_recording.id, @page_recording.recordable.status_category_item_recording_id
     assert_equal [launch_item_recording.id], @page_recording.recordable.topic_category_item_recording_ids
+  end
+
+  test "invalid page updates keep submitting to the update route" do
+    patch "/pages/#{@page_recording.id}", params: {
+      page: {
+        title: "",
+        body: @page_recording.recordable.body,
+        status_category_item_recording_id:
+          @page_recording.recordable.status_category_item_recording_id,
+        topic_category_item_recording_ids:
+          @page_recording.recordable.topic_category_item_recording_ids
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_match(%r{action="/pages/#{@page_recording.id}"}, response.body)
   end
 end

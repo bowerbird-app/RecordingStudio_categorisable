@@ -17,8 +17,8 @@ module RecordingStudioCategorisable
       end
 
       redirect_to category_group_path(@category_group_recording), notice: "Category item created."
-    rescue ActiveRecord::RecordInvalid
-      @category_item = CategoryItem.new(category_item_params)
+    rescue ActiveRecord::RecordInvalid => error
+      @category_item = error.record
       render :new, status: :unprocessable_entity
     end
 
@@ -33,9 +33,8 @@ module RecordingStudioCategorisable
       end
 
       redirect_to category_group_path(@category_group_recording), notice: "Category item updated."
-    rescue ActiveRecord::RecordInvalid
-      @category_item = @category_item_recording.recordable.dup
-      @category_item.assign_attributes(category_item_params)
+    rescue ActiveRecord::RecordInvalid => error
+      @category_item = error.record
       @item_usage_count = UsageReport.new.item_usage_count(@category_item_recording)
       render :edit, status: :unprocessable_entity
     end

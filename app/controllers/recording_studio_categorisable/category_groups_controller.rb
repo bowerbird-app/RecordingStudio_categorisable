@@ -32,8 +32,8 @@ module RecordingStudioCategorisable
       category_group_recording = create_category_group_recording(parent_recording)
 
       redirect_to category_group_path(category_group_recording), notice: "Category group created."
-    rescue ActiveRecord::RecordInvalid
-      @category_group = CategoryGroup.new(category_group_params)
+    rescue ActiveRecord::RecordInvalid => error
+      @category_group = error.record
       render :new, status: :unprocessable_entity
     end
 
@@ -42,15 +42,20 @@ module RecordingStudioCategorisable
     end
 
     def update
-      current_root_recording.revise(@category_group_recording) do |group|
-        assign_category_group_attributes(group, exclude_recording_id: @category_group_recording.id)
+      parent_recording = selected_parent_recording
+      validate_parent_recording!(parent_recording)
+
+      @category_group_recording.class.transaction do
+        current_root_recording.revise(@category_group_recording) do |group|
+          assign_category_group_attributes(group, exclude_recording_id: @category_group_recording.id)
+        end
+
+        @category_group_recording.update!(parent_recording: parent_recording)
       end
 
-      @category_group_recording.update!(parent_recording: selected_parent_recording)
       redirect_to category_group_path(@category_group_recording), notice: "Category group updated."
-    rescue ActiveRecord::RecordInvalid
-      @category_group = @category_group_recording.recordable.dup
-      @category_group.assign_attributes(category_group_params)
+    rescue ActiveRecord::RecordInvalid => error
+      @category_group = error.record
       render :edit, status: :unprocessable_entity
     end
 
@@ -93,7 +98,32 @@ module RecordingStudioCategorisable
 
       current_root_recording
         .recordings_query(include_children: true)
+        .includes(:parent_recording)
         .find(requested_parent_id)
+    end
+
+    def validate_parent_recording!(parent_recording)
+      return unless invalid_parent_recording?(parent_recording)
+
+      category_group = @category_group_recording.recordable.dup
+      category_group.assign_attributes(category_group_params)
+      category_group.errors.add(
+        :base,
+        "Category groups cannot be moved under themselves or their descendants"
+      )
+      raise ActiveRecord::RecordInvalid, category_group
+    end
+
+    def invalid_parent_recording?(parent_recording)
+      current_recording = parent_recording
+
+      while current_recording.present?
+        return true if current_recording.id == @category_group_recording.id
+
+        current_recording = current_recording.parent_recording
+      end
+
+      false
     end
 
     def set_category_group_recording

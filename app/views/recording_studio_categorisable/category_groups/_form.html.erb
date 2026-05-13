@@ -1,6 +1,10 @@
-<%= form_with model: category_group, url: category_group.persisted? ? category_group_path(@category_group_recording) : category_groups_path do |form| %>
+<%= form_with model: category_group, url: @category_group_recording ? category_group_path(@category_group_recording) : category_groups_path do |form| %>
   <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
     <% card.body do %>
+      <% if category_group.errors[:base].present? %>
+        <div class="mb-4 text-sm text-warning"><%= category_group.errors[:base].first %></div>
+      <% end %>
+
       <div class="space-y-4">
         <%= render FlatPack::TextInput::Component.new(
           name: "category_group[name]",
