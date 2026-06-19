@@ -1,0 +1,19 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Config",
+    subtitle: "Runtime configuration for authorization and root recording resolution.",
+    variant: :h1
+  ) %>
+
+  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+    <% card.body do %>
+      <div class="space-y-4 text-sm leading-6 text-[var(--surface-content-color)]">
+        <p>Configure the engine with a root recording resolver and authorization policy.</p>
+        <pre class="overflow-auto rounded-md bg-[var(--surface-muted-background-color)] p-4 text-xs"><code>RecordingStudioCategorisable.configure do |config|
+  config.root_recording_resolver = ->(controller) { controller.current_root_recording }
+  config.authorization_resolver = ->(controller) { controller.current_user.present? }
+end</code></pre>
+      </div>
+    <% end %>
+  <% end %>
+</div>

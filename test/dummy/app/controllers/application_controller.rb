@@ -34,6 +34,16 @@ class ApplicationController < ActionController::Base
   end
 
   def authorize_recording_studio_categorisable!
-    current_user.present?
+    return false unless current_user.present?
+    return true unless defined?(RecordingStudioAccessible)
+
+    root_recording = current_root_recording
+    return false if root_recording.blank?
+
+    RecordingStudioAccessible.authorized?(
+      actor: current_user,
+      recording: root_recording,
+      role: :edit
+    )
   end
 end

@@ -1,21 +1,21 @@
-<%= form_with model: page, url: @page_recording ? page_path(@page_recording) : pages_path do |form| %>
-  <% if page.errors[:base].present? %>
-    <div class="mb-4 text-sm text-warning"><%= page.errors[:base].first %></div>
+<%= form_with model: brief, url: @brief_recording ? brief_path(@brief_recording) : briefs_path do |form| %>
+  <% if brief.errors[:base].present? %>
+    <div class="mb-4 text-sm text-warning"><%= brief.errors[:base].first %></div>
   <% end %>
 
   <div class="space-y-4">
     <%= render FlatPack::TextInput::Component.new(
-      name: "page[title]",
+      name: "brief[title]",
       label: "Title",
-      value: page.title,
-      error: page.errors[:title].first,
+      value: brief.title,
+      error: brief.errors[:title].first,
       required: true
     ) %>
 
     <%= render FlatPack::TextArea::Component.new(
-      name: "page[body]",
+      name: "brief[body]",
       label: "Body",
-      value: page.body,
+      value: brief.body,
       rows: 6
     ) %>
 
@@ -23,9 +23,9 @@
       <% field = field_state.fetch(:field) %>
       <% item_recordings = field_state.fetch(:item_recordings) %>
       <%= render RecordingStudioCategorisable::CategorySelector::Component.new(
-        name: "page[#{field.attribute_name}]",
+        name: "brief[#{field.attribute_name}]",
         field: field,
-        recordable: page,
+        recordable: brief,
         item_recordings: item_recordings
       ) %>
     <% end %>
@@ -33,6 +33,6 @@
 
   <div class="mt-6 flex flex-wrap gap-3">
     <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: pages_path) %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: briefs_path) %>
   </div>
 <% end %>

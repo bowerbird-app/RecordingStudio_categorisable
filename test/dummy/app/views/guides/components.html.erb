@@ -1,0 +1,21 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Components",
+    subtitle: "Categorisable UI surfaces compose FlatPack components.",
+    variant: :h1
+  ) %>
+
+  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+    <% card.body do %>
+      <div class="space-y-4 text-sm leading-6 text-[var(--surface-content-color)]">
+        <p>The category selector is a thin adapter around FlatPack's searchable select component.</p>
+        <pre class="overflow-auto rounded-md bg-[var(--surface-muted-background-color)] p-4 text-xs"><code>render RecordingStudioCategorisable::CategorySelector::Component.new(
+  name: "page[status_category_item_recording_id]",
+  field: field,
+  recordable: page,
+  item_recordings: item_recordings
+)</code></pre>
+      </div>
+    <% end %>
+  <% end %>
+</div>

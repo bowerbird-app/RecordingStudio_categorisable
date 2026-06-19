@@ -2,8 +2,29 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
+def ensure_root_access(root_recording:, actor:, role:, manager_actor:)
+  return unless defined?(RecordingStudioAccessible)
+
+  result = RecordingStudioAccessible.grant_access(
+    recording: root_recording,
+    actor: actor,
+    role: role,
+    manager_actor: manager_actor
+  )
+
+  return result.value if result.success?
+
+  raise "Failed to grant #{role} access to #{actor.email}: #{result.error}"
+end
+
 # Create the admin user
-user = User.find_or_create_by!(email: "admin@admin.com") do |u|
+admin_user = User.find_or_create_by!(email: "admin@admin.com") do |u|
+  u.password = "Password"
+  u.password_confirmation = "Password"
+end
+
+# Create a viewer user
+viewer_user = User.find_or_create_by!(email: "viewer@admin.com") do |u|
   u.password = "Password"
   u.password_confirmation = "Password"
 end
@@ -17,14 +38,9 @@ root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
   parent_recording_id: nil
 )
 
-# Grant root-level admin access to the admin user
-Current.actor = user
-access = RecordingStudio::Access.find_or_create_by!(actor: user, role: :admin)
-RecordingStudio::Recording.unscoped.find_or_create_by!(
-  root_recording_id: root_recording.id,
-  parent_recording_id: root_recording.id,
-  recordable: access
-)
+Current.actor = admin_user
+ensure_root_access(root_recording: root_recording, actor: admin_user, role: :admin, manager_actor: admin_user)
+ensure_root_access(root_recording: root_recording, actor: viewer_user, role: :view, manager_actor: admin_user)
 
 status_group_recording = root_recording.recordings_query(
   include_children: true,
@@ -100,6 +116,22 @@ unless page_recording
   end
 end
 
+brief_recording = root_recording.recordings_query(type: Brief).includes(:recordable).first
+
+unless brief_recording
+  draft_item_recording = status_group_recording.child_recordings.of_type(RecordingStudioCategorisable::CategoryItem)
+                        .includes(:recordable)
+                        .find { |recording| recording.recordable.slug == "draft" }
+
+  root_recording.record(Brief) do |brief|
+    brief.title = "Studio status snapshot"
+    brief.body = "Seeded brief used to demonstrate a single-select categorisable field."
+    brief.status_category_item_recording_id = draft_item_recording&.id
+  end
+end
+
 puts "Seeded: admin@admin.com / Password"
+puts "Seeded: viewer@admin.com / Password"
 puts "Seeded: Workspace '#{workspace.name}' with root recording ##{root_recording.id}"
 puts "Seeded: Category groups '#{status_group_recording.recordable.name}' and '#{topics_group_recording.recordable.name}'"
+puts "Seeded: Brief single-select demo recordable"

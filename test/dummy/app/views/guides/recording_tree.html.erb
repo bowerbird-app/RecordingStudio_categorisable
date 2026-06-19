@@ -1,0 +1,28 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Recording Tree",
+    subtitle: "Current workspace recordings rendered with FlatPack::Tree::Component.",
+    variant: :h1
+  ) %>
+
+  <% if @recording_tree.present? %>
+    <% render_recording_node = lambda do |builder, node| %>
+      <% builder.node(
+        label: node.fetch(:label),
+        icon: node.fetch(:icon),
+        expanded: node.fetch(:expanded),
+        meta: node.fetch(:meta)
+      ) do |child_builder| %>
+        <% node.fetch(:children).each do |child_node| %>
+          <% render_recording_node.call(child_builder, child_node) %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <%= render FlatPack::Tree::Component.new(compact: false, guides: true) do |tree| %>
+      <% render_recording_node.call(tree, @recording_tree) %>
+    <% end %>
+  <% else %>
+    <p class="text-sm text-[var(--surface-muted-content-color)]">No root recording is available.</p>
+  <% end %>
+</div>

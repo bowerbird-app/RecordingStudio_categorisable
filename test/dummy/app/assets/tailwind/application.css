@@ -13,8 +13,8 @@
 /* Extend Tailwind theme with FlatPack design tokens */
 @theme {
   /* Primary Button Colors */
-  --color-fp-primary: oklch(0.52 0.26 250);
-  --color-fp-primary-hover: oklch(0.42 0.24 250);
+  --color-fp-primary: #333333;
+  --color-fp-primary-hover: #262626;
   --color-fp-primary-text: oklch(1.0 0 0);
   
   /* Secondary Button Colors */
@@ -29,7 +29,7 @@
   
   /* Border and Ring Colors */
   --color-fp-border: oklch(0.89 0.01 250);
-  --color-ring: oklch(0.52 0.26 250);
+  --color-ring: #333333;
   
   /* Shadows */
   --shadow-fp-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);

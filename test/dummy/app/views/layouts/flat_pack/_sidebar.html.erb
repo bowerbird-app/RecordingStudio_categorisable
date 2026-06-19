@@ -2,7 +2,7 @@
   <% sidebar.header do %>
     <%= render FlatPack::Sidebar::Header::Component.new(
       brand_abbr: "RS",
-      title: "Addon Template",
+      title: "Categorisable",
       subtitle: "Recording Studio"
     ) %>
   <% end %>
@@ -13,6 +13,36 @@
         label: "Home",
         href: "/",
         icon: :home
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Install",
+        href: "/install",
+        icon: :arrow_down_tray
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Config",
+        href: "/config",
+        icon: :cog_6_tooth
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Methods",
+        href: "/methods",
+        icon: :code_bracket
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Components",
+        href: "/components",
+        icon: :rectangle_group
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Recording Tree",
+        href: "/recording-tree",
+        icon: :share
       ) %>
 
       <%= render FlatPack::Sidebar::Item::Component.new(
@@ -31,6 +61,12 @@
         label: "Pages",
         href: "/pages",
         icon: :file_text
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Briefs",
+        href: "/briefs",
+        icon: :document_text
       ) %>
 
       <%= render FlatPack::Sidebar::Item::Component.new(

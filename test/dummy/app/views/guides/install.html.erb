@@ -1,0 +1,18 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Install",
+    subtitle: "Host app setup for the categorisable engine.",
+    variant: :h1
+  ) %>
+
+  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
+    <% card.body do %>
+      <div class="space-y-4 text-sm leading-6 text-[var(--surface-content-color)]">
+        <p>Add the engine and mount it in the host Rails application.</p>
+        <pre class="overflow-auto rounded-md bg-[var(--surface-muted-background-color)] p-4 text-xs"><code>gem "recording_studio_categorisable"
+
+mount RecordingStudioCategorisable::Engine, at: "/recording_studio_categorisable"</code></pre>
+      </div>
+    <% end %>
+  <% end %>
+</div>

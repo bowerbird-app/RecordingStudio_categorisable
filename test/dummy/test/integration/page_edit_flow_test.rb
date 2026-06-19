@@ -15,6 +15,18 @@ class PageEditFlowTest < ActionDispatch::IntegrationTest
     ).includes(:recordable).find { |recording| recording.recordable.slug == "page-topics" }
   end
 
+  test "edit form renders categorisable fields as searchable FlatPack selects" do
+    get "/pages/#{@page_recording.id}/edit"
+
+    assert_response :success
+    assert_select "[data-controller='flat-pack--select']", 2
+    assert_select "[data-flat-pack--select-searchable-value='true']", 2
+    assert_select "[data-flat-pack--select-multiple-value='false']", 1
+    assert_select "[data-flat-pack--select-multiple-value='true']", 1
+    assert_select "input[type='hidden'][name='page[status_category_item_recording_id]']", 1
+    assert_select "input[type='hidden'][name='page[topic_category_item_recording_ids][]']"
+  end
+
   test "editing a page revises the recording and saves category item recording ids" do
     draft_item_recording = @status_group_recording.child_recordings
                            .of_type(RecordingStudioCategorisable::CategoryItem)
