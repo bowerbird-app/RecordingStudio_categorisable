@@ -1,7 +1,9 @@
-<div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
+<div class="flex w-full flex-col gap-6">
+  <%= render FlatPack::PageNav::Component.new(anchor_url: main_app.root_path) %>
+
   <%= render FlatPack::PageTitle::Component.new(
     title: RecordingStudioCategorisable.configuration.ui_title,
-    subtitle: "Manage category groups and their items across the current recording tree.",
+    subtitle: "Category groups available in the current recording scope.",
     variant: :h1
   ) do |title| %>
     <% title.actions do %>
@@ -13,72 +15,70 @@
     <% end %>
   <% end %>
 
-  <div class="grid gap-6">
-    <% @category_group_recordings.each do |category_group_recording| %>
-      <% category_group = category_group_recording.recordable %>
-      <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-        <% card.header do %>
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="space-y-2">
-              <%= render FlatPack::PageTitle::Component.new(
-                title: category_group.name,
-                subtitle: category_group.description.presence || "No description yet.",
-                variant: :h3,
-                class: "mb-0 pb-0"
-              ) %>
+  <% name_cell = lambda do |category_group_recording|
+       category_group = category_group_recording.recordable
 
-              <div class="flex flex-wrap gap-2">
-                <%= render FlatPack::Badge::Component.new(text: category_group.slug, style: :info, size: :sm) %>
-                <%= render FlatPack::Badge::Component.new(
-                  text: "#{@usage_report.group_usage_count(category_group_recording)} uses",
-                  style: @usage_report.group_usage_count(category_group_recording).positive? ? :warning : :success,
-                  size: :sm
-                ) %>
-              </div>
-            </div>
+       capture do %>
+         <div class="space-y-1">
+           <div class="font-medium"><%= category_group.name %></div>
+           <div class="text-xs text-[var(--surface-muted-content-color)]"><%= category_group.description.presence || "No description" %></div>
+         </div>
+       <% end
+     end %>
 
-            <div class="flex flex-wrap gap-2">
-              <%= render FlatPack::Button::Component.new(
-                text: "View",
-                style: :secondary,
-                url: category_group_path(category_group_recording)
-              ) %>
-              <%= render FlatPack::Button::Component.new(
-                text: "Edit",
-                style: :ghost,
-                url: edit_category_group_path(category_group_recording)
-              ) %>
-            </div>
-          </div>
-        <% end %>
+  <% slug_cell = lambda do |category_group_recording|
+       render FlatPack::Badge::Component.new(text: category_group_recording.recordable.slug, style: :info, size: :sm)
+     end %>
 
-        <% card.body do %>
-          <dl class="grid gap-4 text-sm md:grid-cols-3">
-            <div>
-              <dt class="text-[var(--surface-muted-content-color)]">Recording location</dt>
-              <dd class="font-medium"><%= category_group_recording.parent_recording&.recordable&.try(:name) || category_group_recording.parent_recording&.recordable&.try(:title) || "Root" %></dd>
-            </div>
-            <div>
-              <dt class="text-[var(--surface-muted-content-color)]">Items</dt>
-              <dd class="font-medium"><%= category_group_recording.child_recordings.of_type(RecordingStudioCategorisable::CategoryItem).count %></dd>
-            </div>
-            <div>
-              <dt class="text-[var(--surface-muted-content-color)]">Updated</dt>
-              <dd class="font-medium"><%= l(category_group.updated_at, format: :long) %></dd>
-            </div>
-          </dl>
-        <% end %>
-      <% end %>
-    <% end %>
+  <% location_cell = lambda do |category_group_recording|
+       category_group_recording.parent_recording&.recordable&.try(:name) ||
+         category_group_recording.parent_recording&.recordable&.try(:title) ||
+         "Root"
+     end %>
 
-    <% if @category_group_recordings.empty? %>
-      <%= render FlatPack::Card::Component.new(style: :outlined) do |card| %>
-        <% card.body do %>
-          <p class="text-sm text-[var(--surface-muted-content-color)]">
-            No category groups have been created yet.
-          </p>
-        <% end %>
-      <% end %>
-    <% end %>
-  </div>
+  <% items_cell = lambda do |category_group_recording|
+       category_group_recording.child_recordings.of_type(RecordingStudioCategorisable::CategoryItem).count
+     end %>
+
+  <% usage_cell = lambda do |category_group_recording|
+       usage_count = @usage_report.group_usage_count(category_group_recording)
+       render FlatPack::Badge::Component.new(
+         text: "#{usage_count} uses",
+         style: usage_count.positive? ? :warning : :success,
+         size: :sm
+       )
+     end %>
+
+  <% updated_cell = lambda do |category_group_recording|
+       l(category_group_recording.recordable.updated_at, format: :long)
+     end %>
+
+  <% actions_cell = lambda do |category_group_recording|
+       capture do %>
+         <div class="flex flex-wrap gap-2">
+           <%= render FlatPack::Button::Component.new(
+             text: "View",
+             style: :secondary,
+             size: :sm,
+             url: category_group_path(category_group_recording)
+           ) %>
+           <%= render FlatPack::Button::Component.new(
+             text: "Edit",
+             style: :ghost,
+             size: :sm,
+             url: edit_category_group_path(category_group_recording)
+           ) %>
+         </div>
+       <% end
+     end %>
+
+  <%= render FlatPack::Table::Component.new(data: @category_group_recordings) do |table| %>
+    <% table.column(title: "Name", html: name_cell) %>
+    <% table.column(title: "Slug", html: slug_cell) %>
+    <% table.column(title: "Location", html: location_cell) %>
+    <% table.column(title: "Items", html: items_cell) %>
+    <% table.column(title: "Usage", html: usage_cell) %>
+    <% table.column(title: "Updated", html: updated_cell) %>
+    <% table.column(title: "Actions", html: actions_cell) %>
+  <% end %>
 </div>

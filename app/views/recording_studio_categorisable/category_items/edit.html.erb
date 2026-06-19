@@ -1,4 +1,6 @@
-<div class="mx-auto w-full max-w-4xl px-6 py-12">
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
+  <%= render FlatPack::PageNav::Component.new(anchor_url: main_app.root_path) %>
+
   <%= render FlatPack::PageTitle::Component.new(
     title: "Edit category item",
     subtitle: "Revises the current item snapshot while preserving its usage history.",
@@ -6,10 +8,10 @@
   ) %>
 
   <% if @item_usage_count.positive? %>
-    <div class="mb-4">
+    <div>
       <%= render FlatPack::Badge::Component.new(text: "#{@item_usage_count} active uses", style: :warning, size: :sm) %>
     </div>
   <% end %>
 
-  <%= render "form", category_item: @category_item, submit_text: "Save category item" %>
+  <%= render "form", category_item: @category_item, submit_text: "Save" %>
 </div>

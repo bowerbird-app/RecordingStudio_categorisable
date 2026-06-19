@@ -1,44 +1,38 @@
 <%= form_with model: category_item, url: @category_item_recording ? category_group_category_item_path(@category_group_recording, @category_item_recording) : category_group_category_items_path(@category_group_recording) do |form| %>
-  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-    <% card.body do %>
-      <div class="space-y-4">
-        <%= render FlatPack::TextInput::Component.new(
-          name: "category_item[name]",
-          label: "Name",
-          value: category_item.name,
-          error: category_item.errors[:name].first,
-          required: true
-        ) %>
+  <div class="space-y-4">
+    <%= render FlatPack::TextInput::Component.new(
+      name: "category_item[name]",
+      label: "Name",
+      value: category_item.name,
+      error: category_item.errors[:name].first,
+      required: true
+    ) %>
 
-        <%= render FlatPack::TextInput::Component.new(
-          name: "category_item[slug]",
-          label: "Slug",
-          value: category_item.slug,
-          error: category_item.errors[:slug].first,
-          required: true
-        ) %>
+    <%= render FlatPack::TextInput::Component.new(
+      name: "category_item[slug]",
+      label: "Slug",
+      value: category_item.slug,
+      error: category_item.errors[:slug].first,
+      required: true
+    ) %>
 
-        <%= render FlatPack::TextArea::Component.new(
-          name: "category_item[description]",
-          label: "Description",
-          value: category_item.description,
-          rows: 4
-        ) %>
+    <%= render FlatPack::TextArea::Component.new(
+      name: "category_item[description]",
+      label: "Description",
+      value: category_item.description,
+      rows: 4
+    ) %>
 
-        <%= render FlatPack::TextInput::Component.new(
-          name: "category_item[position]",
-          label: "Position",
-          value: category_item.position,
-          type: "number"
-        ) %>
-      </div>
-    <% end %>
+    <%= render FlatPack::TextInput::Component.new(
+      name: "category_item[position]",
+      label: "Position",
+      value: category_item.position,
+      type: "number"
+    ) %>
+  </div>
 
-    <% card.footer do %>
-      <div class="flex flex-wrap gap-3">
-        <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
-        <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: category_group_path(@category_group_recording)) %>
-      </div>
-    <% end %>
-  <% end %>
+  <div class="mt-6 flex flex-wrap gap-3">
+    <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: category_group_path(@category_group_recording)) %>
+  </div>
 <% end %>

@@ -99,12 +99,24 @@ module RecordingStudioCategorisable
       config.to_prepare do
         next unless defined?(RecordingStudio)
 
-        %w[
-          RecordingStudioCategorisable::CategoryGroup
-          RecordingStudioCategorisable::CategoryItem
-        ].each do |recordable_type_name|
-          RecordingStudio.register_recordable_type(recordable_type_name)
-        end
+        category_group_parent_types = RecordingStudio.configuration.recordable_types + [
+          "RecordingStudioCategorisable::CategoryGroup"
+        ]
+
+        RecordingStudioCategorisable::CategoryGroup.recording_studio_recordable(
+          label: "Category group",
+          root: false,
+          allowed_parent_types: category_group_parent_types
+        )
+
+        RecordingStudio.register_recordable_type("RecordingStudioCategorisable::CategoryGroup")
+
+        RecordingStudioCategorisable::CategoryItem.recording_studio_recordable(
+          label: "Category item",
+          root: false,
+          allowed_parent_types: ["RecordingStudioCategorisable::CategoryGroup"]
+        )
+        RecordingStudio.register_recordable_type("RecordingStudioCategorisable::CategoryItem")
       end
     end
 

@@ -1,48 +1,42 @@
 <%= form_with model: category_group, url: @category_group_recording ? category_group_path(@category_group_recording) : category_groups_path do |form| %>
-  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-    <% card.body do %>
-      <% if category_group.errors[:base].present? %>
-        <div class="mb-4 text-sm text-warning"><%= category_group.errors[:base].first %></div>
-      <% end %>
-
-      <div class="space-y-4">
-        <%= render FlatPack::TextInput::Component.new(
-          name: "category_group[name]",
-          label: "Name",
-          value: category_group.name,
-          error: category_group.errors[:name].first,
-          required: true
-        ) %>
-
-        <%= render FlatPack::TextInput::Component.new(
-          name: "category_group[slug]",
-          label: "Slug",
-          value: category_group.slug,
-          error: category_group.errors[:slug].first,
-          required: true
-        ) %>
-
-        <%= render FlatPack::TextArea::Component.new(
-          name: "category_group[description]",
-          label: "Description",
-          value: category_group.description,
-          rows: 4
-        ) %>
-
-        <%= render FlatPack::Select::Component.new(
-          name: "category_group[parent_recording_id]",
-          label: "Recording location",
-          options: parent_recording_options,
-          value: @category_group_recording&.parent_recording_id || current_root_recording.id
-        ) %>
-      </div>
-    <% end %>
-
-    <% card.footer do %>
-      <div class="flex flex-wrap gap-3">
-        <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
-        <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: @category_group_recording ? category_group_path(@category_group_recording) : category_groups_path) %>
-      </div>
-    <% end %>
+  <% if category_group.errors[:base].present? %>
+    <div class="mb-4 text-sm text-warning"><%= category_group.errors[:base].first %></div>
   <% end %>
+
+  <div class="space-y-4">
+    <%= render FlatPack::TextInput::Component.new(
+      name: "category_group[name]",
+      label: "Name",
+      value: category_group.name,
+      error: category_group.errors[:name].first,
+      required: true
+    ) %>
+
+    <%= render FlatPack::TextInput::Component.new(
+      name: "category_group[slug]",
+      label: "Slug",
+      value: category_group.slug,
+      error: category_group.errors[:slug].first,
+      required: true
+    ) %>
+
+    <%= render FlatPack::TextArea::Component.new(
+      name: "category_group[description]",
+      label: "Description",
+      value: category_group.description,
+      rows: 4
+    ) %>
+
+    <%= render FlatPack::Select::Component.new(
+      name: "category_group[parent_recording_id]",
+      label: "Recording location",
+      options: parent_recording_options,
+      value: @category_group_recording&.parent_recording_id || current_root_recording.id
+    ) %>
+  </div>
+
+  <div class="mt-6 flex flex-wrap gap-3">
+    <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: @category_group_recording ? category_group_path(@category_group_recording) : category_groups_path) %>
+  </div>
 <% end %>

@@ -89,15 +89,31 @@ class EngineTest < Minitest::Test
   def test_register_recordable_types_initializer_registers_group_and_item_types
     recording_studio_module = Module.new
     calls = []
+    declarations = []
+    configuration = Struct.new(:recordable_types).new(["Workspace", "Page"])
+    recording_studio_module.define_singleton_method(:configuration) do
+      configuration
+    end
     recording_studio_module.define_singleton_method(:register_recordable_type) do |type_name|
       calls << type_name
     end
     Object.const_set(:RecordingStudio, recording_studio_module)
+    defined_group_class = RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
+    defined_item_class = RecordingStudioCategorisable.const_defined?(:CategoryItem, false)
+    RecordingStudioCategorisable.const_set(:CategoryGroup, Class.new) unless defined_group_class
+    RecordingStudioCategorisable.const_set(:CategoryItem, Class.new) unless defined_item_class
 
     to_prepare_block = nil
     config_stub = Object.new
     config_stub.define_singleton_method(:to_prepare) do |&block|
       to_prepare_block = block
+    end
+
+    RecordingStudioCategorisable::CategoryGroup.define_singleton_method(:recording_studio_recordable) do |**attributes|
+      declarations << [:group, attributes]
+    end
+    RecordingStudioCategorisable::CategoryItem.define_singleton_method(:recording_studio_recordable) do |**attributes|
+      declarations << [:item, attributes]
     end
 
     RecordingStudioCategorisable::Engine.stub(:config, config_stub) do
@@ -110,6 +126,16 @@ class EngineTest < Minitest::Test
       "RecordingStudioCategorisable::CategoryGroup",
       "RecordingStudioCategorisable::CategoryItem"
     ], calls
+    assert_equal %i[group item], declarations.map(&:first)
+  ensure
+    class << RecordingStudioCategorisable::CategoryGroup
+      remove_method :recording_studio_recordable if method_defined?(:recording_studio_recordable)
+    end
+    class << RecordingStudioCategorisable::CategoryItem
+      remove_method :recording_studio_recordable if method_defined?(:recording_studio_recordable)
+    end
+    RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
+    RecordingStudioCategorisable.send(:remove_const, :CategoryItem) unless defined_item_class
   end
 
   private

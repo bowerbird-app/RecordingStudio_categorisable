@@ -1,37 +1,18 @@
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
   <% category_group = @category_group_recording.recordable %>
 
+  <%= render FlatPack::PageNav::Component.new(anchor_url: main_app.root_path) %>
+
   <%= render FlatPack::PageTitle::Component.new(
     title: category_group.name,
     subtitle: category_group.description.presence || "Manage items and review usage before destructive actions.",
     variant: :h1
-  ) do |title| %>
-    <% title.actions do %>
-      <%= render FlatPack::Button::Component.new(
-        text: "Add item",
-        style: :primary,
-        url: new_category_group_category_item_path(@category_group_recording)
-      ) %>
-      <%= render FlatPack::Button::Component.new(
-        text: "Edit group",
-        style: :secondary,
-        url: edit_category_group_path(@category_group_recording)
-      ) %>
-      <% if @group_usage_count.zero? %>
-        <%= render FlatPack::Button::Component.new(
-          text: "Delete group",
-          style: :error,
-          url: category_group_path(@category_group_recording),
-          method: :delete,
-          data: { turbo_confirm: "Delete this category group and all of its items?" }
-        ) %>
-      <% else %>
-        <%= render FlatPack::Badge::Component.new(text: "Delete blocked while in use", style: :warning, size: :sm) %>
-      <% end %>
-    <% end %>
-  <% end %>
+  ) %>
 
   <div class="flex flex-wrap gap-2">
+    <% unless @group_usage_count.zero? %>
+      <%= render FlatPack::Badge::Component.new(text: "Delete blocked while in use", style: :warning, size: :sm) %>
+    <% end %>
     <%= render FlatPack::Badge::Component.new(text: category_group.slug, style: :info, size: :sm) %>
     <%= render FlatPack::Badge::Component.new(
       text: "#{@group_usage_count} uses",
@@ -40,64 +21,96 @@
     ) %>
   </div>
 
-  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-    <% card.header do %>
-      <%= render FlatPack::PageTitle::Component.new(
-        title: "Category items",
-        subtitle: "Usage counts are calculated from explicit categorisable registrations.",
-        variant: :h3,
-        class: "mb-0 pb-0"
+  <div class="flex flex-wrap gap-2">
+    <%= render FlatPack::Button::Component.new(
+      text: "Add item",
+      style: :primary,
+      url: new_category_group_category_item_path(@category_group_recording)
+    ) %>
+    <%= render FlatPack::Button::Component.new(
+      text: "Edit group",
+      style: :secondary,
+      url: edit_category_group_path(@category_group_recording)
+    ) %>
+    <% if @group_usage_count.zero? %>
+      <%= render FlatPack::Button::Component.new(
+        text: "Delete group",
+        style: :danger,
+        url: category_group_path(@category_group_recording),
+        method: :delete,
+        data: { turbo_confirm: "Delete this category group and all of its items?" }
       ) %>
     <% end %>
+  </div>
 
-    <% card.body do %>
-      <div class="space-y-4">
-        <% @category_item_recordings.each do |category_item_recording| %>
-          <% category_item = category_item_recording.recordable %>
-          <% item_usage_count = @usage_report.item_usage_count(category_item_recording) %>
-          <div class="rounded-lg border border-[var(--card-border-color)] p-4">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-              <div class="space-y-2">
-                <div class="font-semibold text-[var(--surface-content-color)]"><%= category_item.name %></div>
-                <div class="flex flex-wrap gap-2">
-                  <%= render FlatPack::Badge::Component.new(text: category_item.slug, style: :info, size: :sm) %>
-                  <%= render FlatPack::Badge::Component.new(
-                    text: "#{item_usage_count} uses",
-                    style: item_usage_count.positive? ? :warning : :success,
-                    size: :sm
-                  ) %>
-                </div>
-                <% if category_item.description.present? %>
-                  <p class="text-sm text-[var(--surface-muted-content-color)]"><%= category_item.description %></p>
-                <% end %>
-              </div>
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Category items",
+    subtitle: "Usage counts are calculated from explicit categorisable registrations.",
+    variant: :h3,
+    class: "mb-0 pb-0"
+  ) %>
 
-              <div class="flex flex-wrap gap-2">
-                <%= render FlatPack::Button::Component.new(
-                  text: "Edit",
-                  style: :ghost,
-                  url: edit_category_group_category_item_path(@category_group_recording, category_item_recording)
-                ) %>
-                <% if item_usage_count.zero? %>
-                  <%= render FlatPack::Button::Component.new(
-                    text: "Delete",
-                    style: :error,
-                    url: category_group_category_item_path(@category_group_recording, category_item_recording),
-                    method: :delete,
-                    data: { turbo_confirm: "Delete this category item?" }
-                  ) %>
-                <% else %>
-                  <%= render FlatPack::Badge::Component.new(text: "Delete blocked", style: :warning, size: :sm) %>
-                <% end %>
-              </div>
-            </div>
-          </div>
-        <% end %>
+  <% item_name_cell = lambda do |category_item_recording|
+       category_item = category_item_recording.recordable
 
-        <% if @category_item_recordings.empty? %>
-          <p class="text-sm text-[var(--surface-muted-content-color)]">No category items have been added to this group yet.</p>
-        <% end %>
-      </div>
-    <% end %>
+       capture do %>
+         <div class="space-y-1">
+           <div class="font-medium"><%= category_item.name %></div>
+           <div class="text-xs text-[var(--surface-muted-content-color)]"><%= category_item.description.presence || "No description" %></div>
+         </div>
+       <% end
+     end %>
+
+  <% item_slug_cell = lambda do |category_item_recording|
+       render FlatPack::Badge::Component.new(text: category_item_recording.recordable.slug, style: :info, size: :sm)
+     end %>
+
+  <% item_position_cell = lambda do |category_item_recording|
+       category_item_recording.recordable.position
+     end %>
+
+  <% item_usage_cell = lambda do |category_item_recording|
+       item_usage_count = @usage_report.item_usage_count(category_item_recording)
+
+       render FlatPack::Badge::Component.new(
+         text: "#{item_usage_count} uses",
+         style: item_usage_count.positive? ? :warning : :success,
+         size: :sm
+       )
+     end %>
+
+  <% item_actions_cell = lambda do |category_item_recording|
+       item_usage_count = @usage_report.item_usage_count(category_item_recording)
+
+       capture do %>
+         <div class="flex flex-wrap gap-2">
+           <%= render FlatPack::Button::Component.new(
+             text: "Edit",
+             style: :ghost,
+             size: :sm,
+             url: edit_category_group_category_item_path(@category_group_recording, category_item_recording)
+           ) %>
+           <% if item_usage_count.zero? %>
+             <%= render FlatPack::Button::Component.new(
+               text: "Delete",
+               style: :danger,
+               size: :sm,
+               url: category_group_category_item_path(@category_group_recording, category_item_recording),
+               method: :delete,
+               data: { turbo_confirm: "Delete this category item?" }
+             ) %>
+           <% else %>
+             <%= render FlatPack::Badge::Component.new(text: "Delete blocked", style: :warning, size: :sm) %>
+           <% end %>
+         </div>
+       <% end
+     end %>
+
+  <%= render FlatPack::Table::Component.new(data: @category_item_recordings) do |table| %>
+    <% table.column(title: "Name", html: item_name_cell) %>
+    <% table.column(title: "Slug", html: item_slug_cell) %>
+    <% table.column(title: "Position", html: item_position_cell) %>
+    <% table.column(title: "Usage", html: item_usage_cell) %>
+    <% table.column(title: "Actions", html: item_actions_cell) %>
   <% end %>
 </div>

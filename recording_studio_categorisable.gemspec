@@ -22,5 +22,7 @@ Gem::Specification.new do |spec|
     Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
   end
 
+  spec.add_dependency "flat_pack", ">= 0.1.106"
   spec.add_dependency "rails", "~> 8.1.0"
+  spec.add_dependency "recording_studio", ">= 3.0.0"
 end

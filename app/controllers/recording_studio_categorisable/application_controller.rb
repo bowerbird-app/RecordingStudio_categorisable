@@ -3,6 +3,7 @@
 module RecordingStudioCategorisable
   class ApplicationController < (defined?(::ApplicationController) ? ::ApplicationController : ActionController::Base)
     protect_from_forgery with: :exception
+    layout "recording_studio_categorisable/application"
     before_action :authorize_recording_studio_categorisable_access!
 
     helper_method :current_root_recording, :parent_recording_options

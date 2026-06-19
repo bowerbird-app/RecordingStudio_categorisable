@@ -32,8 +32,9 @@ class RecordingStudioCategorisableTest < Minitest::Test
     view_path = File.expand_path("../app/views/recording_studio_categorisable/category_groups/index.html.erb", __dir__)
     view_source = File.read(view_path)
 
+    assert_includes view_source, "FlatPack::PageNav::Component"
     assert_includes view_source, "FlatPack::PageTitle::Component"
-    assert_includes view_source, "FlatPack::Card::Component"
+    assert_includes view_source, "FlatPack::Table::Component"
     assert_includes view_source, "FlatPack::Button::Component"
     assert_includes view_source, "FlatPack::Badge::Component"
   end
