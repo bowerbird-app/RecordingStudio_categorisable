@@ -3,6 +3,9 @@
 module RecordingStudioCategorisable
   # rubocop:disable Metrics/ClassLength
   class CategoryField
+    GROUP_RECORDINGS_CACHE_IVAR = :@recording_studio_categorisable_group_recordings_by_slug
+    ITEM_RECORDINGS_CACHE_IVAR = :@recording_studio_categorisable_item_recordings_by_group_id
+
     SELECTIONS = %i[single multiple].freeze
 
     attr_reader :attribute_name, :selection, :category_group_slug, :group_resolver
@@ -102,12 +105,7 @@ module RecordingStudioCategorisable
     end
 
     def group_recordings_for(root_recording)
-      root_recording.recordings_query(
-        include_children: true,
-        type: RecordingStudioCategorisable::CategoryGroup
-      ).includes(:recordable).select do |recording|
-        recording.recordable.slug == category_group_slug
-      end
+      cached_group_recordings_by_slug(root_recording).fetch(category_group_slug, [])
     end
 
     def validate!
@@ -130,10 +128,37 @@ module RecordingStudioCategorisable
     def category_item_recordings_for(group_recording)
       return [] unless group_recording
 
-      group_recording
-        .child_recordings
-        .of_type(RecordingStudioCategorisable::CategoryItem)
+      cache = item_recordings_cache_for(group_recording)
+      cache.fetch(group_recording.id) do
+        cache[group_recording.id] = group_recording
+          .child_recordings
+          .of_type(RecordingStudioCategorisable::CategoryItem)
+          .includes(:recordable)
+          .to_a
+      end
+    end
+
+    def cached_group_recordings_by_slug(root_recording)
+      return {} if root_recording.blank?
+
+      if root_recording.instance_variable_defined?(GROUP_RECORDINGS_CACHE_IVAR)
+        return root_recording.instance_variable_get(GROUP_RECORDINGS_CACHE_IVAR)
+      end
+
+      grouped_recordings = root_recording
+        .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
         .includes(:recordable)
+        .group_by { |recording| recording.recordable.slug.to_s }
+
+      root_recording.instance_variable_set(GROUP_RECORDINGS_CACHE_IVAR, grouped_recordings)
+    end
+
+    def item_recordings_cache_for(group_recording)
+      if group_recording.instance_variable_defined?(ITEM_RECORDINGS_CACHE_IVAR)
+        group_recording.instance_variable_get(ITEM_RECORDINGS_CACHE_IVAR)
+      else
+        group_recording.instance_variable_set(ITEM_RECORDINGS_CACHE_IVAR, {})
+      end
     end
   end
   # rubocop:enable Metrics/ClassLength

@@ -71,6 +71,36 @@ class CategoryFieldTest < Minitest::Test
     RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
   end
 
+  def test_available_item_recordings_reuses_cached_group_and_item_queries
+    field = RecordingStudioCategorisable::CategoryField.new(
+      attribute_name: :status_category_item_recording_id,
+      selection: :single,
+      category_group_slug: "page-status"
+    )
+
+    item_recordings = [
+      Struct.new(:id, :recordable).new("item-2", Struct.new(:position, :name).new(2, "Beta")),
+      Struct.new(:id, :recordable).new("item-1", Struct.new(:position, :name).new(1, "Alpha"))
+    ]
+
+    group_recording = build_group_recording("group-1", item_recordings)
+    root_recording = build_root_recording_with_group(group_recording)
+    defined_group_class = RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
+    defined_item_class = RecordingStudioCategorisable.const_defined?(:CategoryItem, false)
+    RecordingStudioCategorisable.const_set(:CategoryGroup, Class.new) unless defined_group_class
+    RecordingStudioCategorisable.const_set(:CategoryItem, Class.new) unless defined_item_class
+
+    2.times do
+      assert_equal %w[item-1 item-2], field.available_item_recordings(root_recording: root_recording).map(&:id)
+    end
+
+    assert_equal 1, root_recording.recordings_query_calls
+    assert_equal 1, group_recording.child_recordings_calls
+  ensure
+    RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
+    RecordingStudioCategorisable.send(:remove_const, :CategoryItem) unless defined_item_class
+  end
+
   private
 
   def category_group_recordings(group)
@@ -78,5 +108,39 @@ class CategoryFieldTest < Minitest::Test
       Struct.new(:recordable).new(group.new("page-status")),
       Struct.new(:recordable).new(group.new("page-status"))
     ]
+  end
+
+  def build_root_recording_with_group(group_recording)
+    Struct.new(:group_recording, :recordings_query_calls) do
+      def recordings_query(**)
+        self.recordings_query_calls += 1
+        relation = Struct.new(:recording) do
+          def includes(*)
+            [recording]
+          end
+        end
+
+        relation.new(group_recording)
+      end
+    end.new(group_recording, 0)
+  end
+
+  def build_group_recording(id, item_recordings)
+    Struct.new(:id, :recordable, :child_recordings_calls) do
+      def child_recordings
+        self.child_recordings_calls += 1
+        relation = Struct.new(:records) do
+          def of_type(*)
+            self
+          end
+
+          def includes(*)
+            records
+          end
+        end
+
+        relation.new(recordable.records)
+      end
+    end.new(id, Struct.new(:slug, :records).new("page-status", item_recordings), 0)
   end
 end

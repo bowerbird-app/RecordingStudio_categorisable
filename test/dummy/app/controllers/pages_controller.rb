@@ -71,16 +71,24 @@ class PagesController < ApplicationController
   end
 
   def load_category_fields
-    @category_fields = registration.fields.map do |field|
+    @category_fields = category_field_states(@page)
+  end
+
+  def category_fields
+    @category_fields_definitions ||= registration.fields
+  end
+
+  def category_field_states(recordable)
+    @category_field_states ||= category_fields.map do |field|
       {
         field: field,
-        item_recordings: field.available_item_recordings(root_recording: current_root_recording, recordable: @page)
+        item_recordings: field.available_item_recordings(root_recording: current_root_recording, recordable: recordable)
       }
     end
   end
 
   def sanitized_category_assignments
-    registration.fields.each_with_object({}) do |field, assignments|
+    category_fields.each_with_object({}) do |field, assignments|
       assignments[field.key] = field.sanitize(
         params.dig(:page, field.attribute_name),
         root_recording: current_root_recording,
@@ -90,7 +98,7 @@ class PagesController < ApplicationController
   end
 
   def apply_category_assignments(page, assignments)
-    registration.fields.each do |field|
+    category_fields.each do |field|
       field.write(page, assignments.fetch(field.key))
     end
   end
