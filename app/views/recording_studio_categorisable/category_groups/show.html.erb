@@ -10,36 +10,41 @@
   ) %>
 
   <div class="flex flex-wrap gap-2">
-    <% unless @group_usage_count.zero? %>
-      <%= render FlatPack::Badge::Component.new(text: "Delete blocked while in use", style: :warning, size: :sm) %>
-    <% end %>
-    <%= render FlatPack::Badge::Component.new(text: category_group.slug, style: :info, size: :sm) %>
-    <%= render FlatPack::Badge::Component.new(
-      text: "#{@group_usage_count} uses",
-      style: @group_usage_count.positive? ? :warning : :success,
-      size: :sm
-    ) %>
-  </div>
-
-  <div class="flex flex-wrap gap-2">
     <%= render FlatPack::Button::Component.new(
       text: "Add item",
       style: :primary,
+      size: :sm,
       url: new_category_group_category_item_path(@category_group_recording)
     ) %>
     <%= render FlatPack::Button::Component.new(
       text: "Edit group",
       style: :secondary,
+      size: :sm,
       url: edit_category_group_path(@category_group_recording)
     ) %>
     <% if @group_usage_count.zero? %>
       <%= render FlatPack::Button::Component.new(
         text: "Delete group",
-        style: :danger,
+        style: :secondary,
+        size: :sm,
         url: category_group_path(@category_group_recording),
         method: :delete,
         data: { turbo_confirm: "Delete this category group and all of its items?" }
       ) %>
+    <% else %>
+      <% delete_tooltip = "Delete is disabled while this category group is in use by #{pluralize(@group_usage_count, 'recording')}." %>
+      <%= render FlatPack::Tooltip::Component.new(text: delete_tooltip) do %>
+        <%= render FlatPack::Button::Component.new(
+          text: "Delete",
+          style: :secondary,
+          size: :sm,
+          url: category_group_path(@category_group_recording),
+          method: :delete,
+          class: "pointer-events-none cursor-not-allowed opacity-50",
+          aria: { disabled: true },
+          tabindex: -1
+        ) %>
+      <% end %>
     <% end %>
   </div>
 
@@ -56,13 +61,13 @@
        capture do %>
          <div class="space-y-1">
            <div class="font-medium"><%= category_item.name %></div>
-           <div class="text-xs text-[var(--surface-muted-content-color)]"><%= category_item.description.presence || "No description" %></div>
+           <div class="text-xs text-(--surface-muted-content-color)"><%= category_item.description.presence || "No description" %></div>
          </div>
        <% end
      end %>
 
   <% item_slug_cell = lambda do |category_item_recording|
-       render FlatPack::Badge::Component.new(text: category_item_recording.recordable.slug, style: :info, size: :sm)
+       category_item_recording.recordable.slug
      end %>
 
   <% item_position_cell = lambda do |category_item_recording|
@@ -72,11 +77,7 @@
   <% item_usage_cell = lambda do |category_item_recording|
        item_usage_count = @usage_report.item_usage_count(category_item_recording)
 
-       render FlatPack::Badge::Component.new(
-         text: "#{item_usage_count} uses",
-         style: item_usage_count.positive? ? :warning : :success,
-         size: :sm
-       )
+       "#{item_usage_count} uses"
      end %>
 
   <% item_actions_cell = lambda do |category_item_recording|
@@ -86,21 +87,33 @@
          <div class="flex flex-wrap gap-2">
            <%= render FlatPack::Button::Component.new(
              text: "Edit",
-             style: :ghost,
+             style: :secondary,
              size: :sm,
              url: edit_category_group_category_item_path(@category_group_recording, category_item_recording)
            ) %>
            <% if item_usage_count.zero? %>
              <%= render FlatPack::Button::Component.new(
                text: "Delete",
-               style: :danger,
+               style: :secondary,
                size: :sm,
                url: category_group_category_item_path(@category_group_recording, category_item_recording),
                method: :delete,
                data: { turbo_confirm: "Delete this category item?" }
              ) %>
            <% else %>
-             <%= render FlatPack::Badge::Component.new(text: "Delete blocked", style: :warning, size: :sm) %>
+            <% delete_tooltip = "Delete is disabled while this category item is used by #{pluralize(item_usage_count, 'recording')}." %>
+            <%= render FlatPack::Tooltip::Component.new(text: delete_tooltip) do %>
+              <%= render FlatPack::Button::Component.new(
+                text: "Delete",
+                style: :secondary,
+                size: :sm,
+                url: category_group_category_item_path(@category_group_recording, category_item_recording),
+                method: :delete,
+                class: "pointer-events-none cursor-not-allowed opacity-50",
+                aria: { disabled: true },
+                tabindex: -1
+              ) %>
+            <% end %>
            <% end %>
          </div>
        <% end

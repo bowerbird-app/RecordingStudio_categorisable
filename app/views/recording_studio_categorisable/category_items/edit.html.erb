@@ -7,11 +7,5 @@
     variant: :h1
   ) %>
 
-  <% if @item_usage_count.positive? %>
-    <div>
-      <%= render FlatPack::Badge::Component.new(text: "#{@item_usage_count} active uses", style: :warning, size: :sm) %>
-    </div>
-  <% end %>
-
   <%= render "form", category_item: @category_item, submit_text: "Save" %>
 </div>
