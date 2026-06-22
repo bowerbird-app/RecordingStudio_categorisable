@@ -5,6 +5,28 @@
 def ensure_root_access(root_recording:, actor:, role:, manager_actor:)
   return unless defined?(RecordingStudioAccessible)
 
+  existing_access = root_recording
+    .child_recordings
+    .where(recordable_type: "RecordingStudio::Access")
+    .includes(:recordable)
+    .find do |recording|
+      access = recording.recordable
+      access.actor == actor && access.role.to_s == role.to_s
+    end
+
+  return existing_access.recordable if existing_access
+
+  if role.to_sym == :admin && actor == manager_actor
+    RecordingStudioAccessible::AccessCreationContext.allow do
+      access_recording = root_recording.record(RecordingStudio::Access, parent_recording: root_recording) do |access|
+        access.actor = actor
+        access.role = role
+      end
+
+      return access_recording.recordable
+    end
+  end
+
   result = RecordingStudioAccessible.grant_access(
     recording: root_recording,
     actor: actor,
