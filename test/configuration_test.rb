@@ -3,6 +3,18 @@
 require "test_helper"
 
 class ConfigurationTest < Minitest::Test
+  class ControllerDouble
+    attr_writer :performed
+
+    def initialize(performed)
+      @performed = performed
+    end
+
+    def performed?
+      @performed
+    end
+  end
+
   def setup
     @configuration = RecordingStudioCategorisable::Configuration.new
   end
@@ -58,5 +70,27 @@ class ConfigurationTest < Minitest::Test
     RecordingStudioCategorisable.configure
 
     assert_kind_of RecordingStudioCategorisable::Configuration, RecordingStudioCategorisable.configuration
+  end
+
+  def test_handle_unauthorized_returns_false_when_no_handler_is_configured
+    controller = ControllerDouble.new(false)
+
+    refute @configuration.handle_unauthorized(controller, StandardError.new("nope"))
+  end
+
+  def test_handle_unauthorized_executes_handler_and_reports_if_response_was_performed
+    called = false
+    controller = ControllerDouble.new(true)
+
+    @configuration.unauthorized_response_handler = lambda do |passed_controller, passed_exception|
+      called = true
+      assert_same controller, passed_controller
+      assert_equal "blocked", passed_exception.message
+    end
+
+    handled = @configuration.handle_unauthorized(controller, StandardError.new("blocked"))
+
+    assert called
+    assert handled
   end
 end

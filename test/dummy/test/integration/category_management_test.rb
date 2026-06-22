@@ -21,6 +21,16 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     assert RecordingStudio::Recording.exists?(@published_item_recording.id)
   end
 
+  test "viewer access returns forbidden" do
+    sign_out :user
+    sign_in User.find_by!(email: "viewer@admin.com")
+
+    get "/recording_studio_categorisable"
+
+    assert_response :forbidden
+    assert_includes response.body, "You are not authorized to manage categories"
+  end
+
   test "category group deletion is blocked while a descendant item is in use" do
     nested_group_recording = @root_recording.record(
       RecordingStudioCategorisable::CategoryGroup,

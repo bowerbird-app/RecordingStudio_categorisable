@@ -60,6 +60,12 @@ RecordingStudioCategorisable.configure do |config|
   config.ui_title = "Categories"
   config.root_recording_resolver = ->(controller) { controller.send(:current_root_recording) }
   config.authorization_resolver = ->(controller) { controller.current_user.present? }
+
+  # Optional: customize the 403 response when authorization fails.
+  # Example: render your own page or redirect.
+  # config.unauthorized_response_handler = ->(controller, exception) do
+  #   controller.render("errors/forbidden", status: :forbidden)
+  # end
 end
 ```
 

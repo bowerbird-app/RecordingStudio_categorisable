@@ -5,6 +5,7 @@ module RecordingStudioCategorisable
     protect_from_forgery with: :exception
     layout "recording_studio_categorisable/application"
     before_action :authorize_recording_studio_categorisable_access!
+    rescue_from UnauthorizedError, with: :render_forbidden
 
     helper_method :current_root_recording, :parent_recording_options
 
@@ -60,6 +61,17 @@ module RecordingStudioCategorisable
       return recordable.title if recordable.respond_to?(:title)
 
       recordable.class.model_name.human
+    end
+
+    def render_forbidden(exception)
+      if RecordingStudioCategorisable.configuration.handle_unauthorized(self, exception)
+        return
+      end
+
+      respond_to do |format|
+        format.html { render plain: exception.message, status: :forbidden }
+        format.any { head :forbidden }
+      end
     end
   end
 end

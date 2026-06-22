@@ -18,7 +18,7 @@ class BriefsController < ApplicationController
       apply_category_assignments(brief, category_assignments)
     end
 
-    redirect_to briefs_path, notice: "Brief created."
+    redirect_to root_path, notice: "Brief created."
   rescue ActiveRecord::RecordInvalid => error
     @brief = error.record
     load_category_fields
@@ -43,7 +43,7 @@ class BriefsController < ApplicationController
       apply_category_assignments(brief, category_assignments)
     end
 
-    redirect_to briefs_path, notice: "Brief updated."
+    redirect_to root_path, notice: "Brief updated."
   rescue ActiveRecord::RecordInvalid => error
     @brief = error.record
     load_category_fields

@@ -11,6 +11,12 @@ RecordingStudioCategorisable.configure do |config|
   # `authorize_recording_studio_categorisable!`.
   # config.authorization_resolver = ->(controller) { controller.current_user.present? }
 
+  # Optional: customize unauthorized behavior for the mounted UI.
+  # The handler should perform a response (render/redirect/head).
+  # config.unauthorized_response_handler = ->(controller, exception) do
+  #   controller.render("errors/forbidden", status: :forbidden)
+  # end
+
   # Explicitly register categorisable recordables if you prefer initializer-based configuration.
   # config.register_categorisable("Page") do |registration|
   #   registration.single_select :status_category_item_recording_id, category_group_slug: "page-status"

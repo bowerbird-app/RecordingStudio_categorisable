@@ -8,6 +8,23 @@ module RecordingStudioCategorisable
       class_attribute :recording_studio_category_fields, instance_accessor: false, default: []
     end
 
+    def assigned_category_items(category_group: nil)
+      fields = self.class.recording_studio_category_fields
+      fields = fields.select { |field| field.category_group_slug == category_group.to_s } if category_group.present?
+
+      item_recording_ids = fields.flat_map { |field| Array(field.read(self)) }.compact.uniq
+      return [] if item_recording_ids.empty?
+
+      recordings_by_id = RecordingStudio::Recording
+        .where(id: item_recording_ids)
+        .includes(:recordable)
+        .index_by { |recording| recording.id.to_s }
+
+      item_recording_ids.filter_map do |item_recording_id|
+        recordings_by_id[item_recording_id.to_s]&.recordable
+      end
+    end
+
     class_methods do
       def categorises(attribute_name, selection:, category_group_slug:, **options)
         field = build_category_field(
@@ -22,6 +39,20 @@ module RecordingStudioCategorisable
         RecordingStudioCategorisable.register_categorisable(name) do |registration|
           registration.add_field(nil, field)
         end
+
+        define_singleton_method(attribute_name) do
+          recording_studio_category_fields.find { |existing_field| existing_field.key == field.key }
+        end
+      end
+
+      def available_category_groups
+        category_group_slugs = recording_studio_category_fields.map(&:category_group_slug).uniq
+        return [] if category_group_slugs.empty?
+
+        RecordingStudioCategorisable::CategoryGroup
+          .where(slug: category_group_slugs)
+          .to_a
+          .sort_by { |group| [group.slug.to_s, group.name.to_s.downcase] }
       end
 
       private

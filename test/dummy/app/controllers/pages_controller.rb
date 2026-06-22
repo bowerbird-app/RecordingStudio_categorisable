@@ -18,7 +18,7 @@ class PagesController < ApplicationController
       apply_category_assignments(page, category_assignments)
     end
 
-    redirect_to pages_path, notice: "Page created."
+    redirect_to root_path, notice: "Page created."
   rescue ActiveRecord::RecordInvalid => error
     @page = error.record
     load_category_fields
@@ -43,7 +43,7 @@ class PagesController < ApplicationController
       apply_category_assignments(page, category_assignments)
     end
 
-    redirect_to pages_path, notice: "Page updated."
+    redirect_to root_path, notice: "Page updated."
   rescue ActiveRecord::RecordInvalid => error
     @page = error.record
     load_category_fields

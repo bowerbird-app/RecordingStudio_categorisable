@@ -10,6 +10,16 @@ class GuidesController < ApplicationController
   end
 
   def components
+    @root_recording = current_root_recording
+
+    @sample_page = @root_recording&.recordings_query(type: Page)&.includes(:recordable)&.first&.recordable || Page.new
+    @sample_brief = @root_recording&.recordings_query(type: Brief)&.includes(:recordable)&.first&.recordable || Brief.new
+
+    @brief_status_field = registration_field(Brief, :status_category_item_recording_id)
+    @brief_status_item_recordings = available_items(@brief_status_field, @sample_brief)
+
+    @page_topics_field = registration_field(Page, :topic_category_item_recording_ids)
+    @page_topics_item_recordings = available_items(@page_topics_field, @sample_page)
   end
 
   def recording_tree
@@ -21,12 +31,61 @@ class GuidesController < ApplicationController
 
   def build_recording_tree(recording)
     {
-      label: "#{recording.recordable_type.demodulize} - #{recordable_name(recording)}",
+      label: recording_label(recording),
       icon: recording_icon(recording),
       meta: nil,
       expanded: true,
       children: child_recordings_for(recording).map { |child_recording| build_recording_tree(child_recording) }
     }
+  end
+
+  def recording_label(recording)
+    "#{recording.recordable_type.demodulize} - #{recordable_name(recording)}#{categories_suffix(recording)}"
+  end
+
+  def categories_suffix(recording)
+    recordable = recording.recordable
+    return "" unless recordable
+
+    registration = RecordingStudioCategorisable.configuration.registration_for(recording.recordable_type)
+    return "" unless registration
+
+    category_parts = registration.fields_for(recordable).filter_map do |field|
+      selected_item_ids = Array(field.read(recordable)).compact
+      next if selected_item_ids.empty?
+
+      selected_item_names = category_item_names_for(selected_item_ids)
+      next if selected_item_names.empty?
+
+      "#{field.label}: #{selected_item_names.join(', ')}"
+    end
+
+    return "" if category_parts.empty?
+
+    " (#{category_parts.join(' | ')})"
+  rescue StandardError
+    ""
+  end
+
+  def category_item_names_for(item_ids)
+    @category_item_name_cache ||= {}
+
+    normalized_ids = item_ids.map(&:to_s)
+    missing_ids = normalized_ids - @category_item_name_cache.keys
+
+    if missing_ids.any?
+      RecordingStudio::Recording
+        .where(id: missing_ids)
+        .includes(:recordable)
+        .each do |item_recording|
+          @category_item_name_cache[item_recording.id.to_s] =
+            item_recording.recordable.try(:name).presence ||
+            item_recording.recordable.try(:title).presence ||
+            item_recording.recordable_type.demodulize
+        end
+    end
+
+    normalized_ids.filter_map { |item_id| @category_item_name_cache[item_id] }
   end
 
   def child_recordings_for(recording)
@@ -91,5 +150,18 @@ class GuidesController < ApplicationController
     return recordable.title if recordable.respond_to?(:title) && recordable.title.present?
 
     recording.recordable_type.demodulize
+  end
+
+  def registration_field(recordable_type, attribute_name)
+    registration = RecordingStudioCategorisable.configuration.registration_for(recordable_type)
+    return unless registration
+
+    registration.field(attribute_name)
+  end
+
+  def available_items(field, recordable)
+    return [] unless field && @root_recording
+
+    field.available_item_recordings(root_recording: @root_recording, recordable: recordable)
   end
 end

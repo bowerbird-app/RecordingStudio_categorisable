@@ -1,23 +1,47 @@
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: "Methods",
-    subtitle: "Model methods exposed by the categorisable DSL.",
+    subtitle: "Common categorisable APIs you can call from models, forms, and controllers.",
     variant: :h1
   ) %>
 
-  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-    <% card.body do %>
-      <div class="space-y-4 text-sm leading-6 text-[var(--surface-content-color)]">
-        <p>Include the concern on a recordable model, then declare category-backed attributes.</p>
-        <pre class="overflow-auto rounded-md bg-[var(--surface-muted-background-color)] p-4 text-xs"><code>class Page < ApplicationRecord
-  include RecordingStudioCategorisable::Categorisable
+  <div class="space-y-8 text-sm leading-6 text-(--surface-content-color)">
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">recording_studio_category_fields</h2>
+      <p class="text-(--surface-muted-content-color)">Inspect the categorisable fields declared on the model class.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>Page.recording_studio_category_fields.map(&:attribute_name)
+# =&gt; [:status_category_item_recording_id, :topic_category_item_recording_ids]</code></pre>
+    </section>
 
-  categorises :status_category_item_recording_id,
-    selection: :single,
-    category_group_slug: "page-status",
-    label: "Status"
-end</code></pre>
-      </div>
-    <% end %>
-  <% end %>
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">Page.status_category_item_recording_id</h2>
+      <p class="text-(--surface-muted-content-color)">The categorises declaration defines a class-level accessor that returns the field object, so you can ask it whether it is single or multiple.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>Page.status_category_item_recording_id.single?
+    # =&gt; true
+
+    Page.topic_category_item_recording_ids.multiple?
+    # =&gt; true</code></pre>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">Page.available_category_groups</h2>
+      <p class="text-(--surface-muted-content-color)">Return the category group recordables declared for the model.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>Page.available_category_groups
+    # =&gt; [#&lt;RecordingStudioCategorisable::CategoryGroup slug: "page-status"&gt;,
+    #     #&lt;RecordingStudioCategorisable::CategoryGroup slug: "page-topics"&gt;]</code></pre>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">page.assigned_category_items</h2>
+      <p class="text-(--surface-muted-content-color)">Return the category item recordables selected by a page, optionally filtered by category group slug.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>page.assigned_category_items
+# =&gt; [#&lt;RecordingStudioCategorisable::CategoryItem slug: "published"&gt;,
+#     #&lt;RecordingStudioCategorisable::CategoryItem slug: "product"&gt;]
+
+page.assigned_category_items(category_group: "page-topics")
+# =&gt; [#&lt;RecordingStudioCategorisable::CategoryItem slug: "product"&gt;,
+#     #&lt;RecordingStudioCategorisable::CategoryItem slug: "studio"&gt;]</code></pre>
+    </section>
+
+  </div>
 </div>

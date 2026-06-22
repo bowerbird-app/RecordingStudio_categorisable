@@ -4,7 +4,10 @@ require_relative "hooks"
 
 module RecordingStudioCategorisable
   class Configuration
-    attr_accessor :ui_title, :root_recording_resolver, :authorization_resolver
+    attr_accessor :ui_title,
+                  :root_recording_resolver,
+                  :authorization_resolver,
+                  :unauthorized_response_handler
     attr_reader :hooks, :categorisable_registrations
 
     def initialize
@@ -46,6 +49,13 @@ module RecordingStudioCategorisable
       return if authorization_resolver.call(controller)
 
       raise UnauthorizedError, "You are not authorized to manage categories"
+    end
+
+    def handle_unauthorized(controller, exception)
+      return false unless unauthorized_response_handler
+
+      unauthorized_response_handler.call(controller, exception)
+      controller.performed?
     end
 
     def merge!(hash)

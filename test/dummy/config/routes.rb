@@ -24,8 +24,8 @@ Rails.application.routes.draw do
   get "methods", to: "guides#methods"
   get "components", to: "guides#components"
   get "recording-tree", to: "guides#recording_tree"
+  resources :pages, only: %i[new create edit update]
+  resources :briefs, only: %i[new create edit update]
 
-  resources :pages, only: %i[index new create edit update]
-  resources :briefs, only: %i[index new create edit update]
   root "home#index"
 end

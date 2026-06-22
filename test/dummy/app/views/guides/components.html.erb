@@ -1,21 +1,68 @@
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: "Components",
-    subtitle: "Categorisable UI surfaces compose FlatPack components.",
+    subtitle: "Examples of single-select and multi-select categorisable component usage.",
     variant: :h1
   ) %>
 
-  <%= render FlatPack::Card::Component.new(style: :default) do |card| %>
-    <% card.body do %>
-      <div class="space-y-4 text-sm leading-6 text-[var(--surface-content-color)]">
-        <p>The category selector is a thin adapter around FlatPack's searchable select component.</p>
-        <pre class="overflow-auto rounded-md bg-[var(--surface-muted-background-color)] p-4 text-xs"><code>render RecordingStudioCategorisable::CategorySelector::Component.new(
-  name: "page[status_category_item_recording_id]",
-  field: field,
-  recordable: page,
-  item_recordings: item_recordings
+  <div class="space-y-6 text-sm leading-6 text-(--surface-content-color)">
+    <p>The category selector wraps FlatPack select inputs and supports both single-select and multi-select category fields.</p>
+    <p>The render call looks the same for both modes. The single vs multiple behavior is declared on the model field registration with <code>selection: :single</code> or <code>selection: :multiple</code>.</p>
+
+    <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>class Page < ApplicationRecord
+  include RecordingStudioCategorisable::Categorisable
+
+  categorises :status_category_item_recording_id,
+    selection: :single,
+    category_group_slug: "page-status",
+    label: "Status"
+
+  categorises :topic_category_item_recording_ids,
+    selection: :multiple,
+    category_group_slug: "page-topics",
+    label: "Topics"
+end</code></pre>
+
+    <div class="space-y-3">
+      <h2 class="text-base font-semibold">Single-select sample</h2>
+      <% if @brief_status_field.present? %>
+        <%= render RecordingStudioCategorisable::CategorySelector::Component.new(
+          name: "brief[status_category_item_recording_id]",
+          field: @brief_status_field,
+          recordable: @sample_brief,
+          item_recordings: @brief_status_item_recordings
+        ) %>
+      <% else %>
+        <p class="text-(--surface-muted-content-color)">Single-select field configuration was not found.</p>
+      <% end %>
+
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>render RecordingStudioCategorisable::CategorySelector::Component.new(
+  name: "brief[status_category_item_recording_id]",
+  field: status_field,
+  recordable: brief,
+  item_recordings: status_item_recordings
 )</code></pre>
-      </div>
-    <% end %>
-  <% end %>
+    </div>
+
+    <div class="space-y-3">
+      <h2 class="text-base font-semibold">Multiple-select sample</h2>
+      <% if @page_topics_field.present? %>
+        <%= render RecordingStudioCategorisable::CategorySelector::Component.new(
+          name: "page[topic_category_item_recording_ids]",
+          field: @page_topics_field,
+          recordable: @sample_page,
+          item_recordings: @page_topics_item_recordings
+        ) %>
+      <% else %>
+        <p class="text-(--surface-muted-content-color)">Multiple-select field configuration was not found.</p>
+      <% end %>
+
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>render RecordingStudioCategorisable::CategorySelector::Component.new(
+  name: "page[topic_category_item_recording_ids]",
+  field: topics_field,
+  recordable: page,
+  item_recordings: topic_item_recordings
+)</code></pre>
+    </div>
+  </div>
 </div>
