@@ -51,12 +51,18 @@ module RecordingStudioCategorisable
 
     def descendant_item_recordings(group_recording)
       descendants = []
-      queue = group_recording.child_recordings.includes(:recordable).to_a
+      queue = RecordingStudioCategorisable::RecordingVisibility.active_scope(
+        group_recording.child_recordings
+      ).includes(:recordable).to_a
 
       until queue.empty?
         recording = queue.shift
         descendants << recording if recording.recordable.is_a?(RecordingStudioCategorisable::CategoryItem)
-        queue.concat(recording.child_recordings.includes(:recordable).to_a)
+        queue.concat(
+          RecordingStudioCategorisable::RecordingVisibility.active_scope(recording.child_recordings)
+            .includes(:recordable)
+            .to_a
+        )
       end
 
       descendants

@@ -2,6 +2,19 @@
 
 require "test_helper"
 
+unless defined?(::ActiveRecord)
+  module ::ActiveRecord
+    class RecordInvalid < StandardError
+      attr_reader :record
+
+      def initialize(record)
+        @record = record
+        super("Record invalid")
+      end
+    end
+  end
+end
+
 class SeedCategoriesTest < Minitest::Test
   def setup
     # Ensure model constants are stubbed in unit test context
@@ -17,7 +30,7 @@ class SeedCategoriesTest < Minitest::Test
     created_items = @created_items
 
     Struct.new(:existing_groups, :existing_items_map) do
-      define_method(:record) do |recordable_type, parent_recording: nil, &block|
+      define_method(:record) do |recordable_type, **, &block|
         recordable = Struct.new(:key, :name, :description, :position).new
         block.call(recordable)
 
@@ -42,7 +55,7 @@ class SeedCategoriesTest < Minitest::Test
         recording
       end
 
-      define_method(:recordings_query) do |include_children: false, type: nil|
+      define_method(:recordings_query) do |type: nil, **|
         Struct.new(:records) do
           define_method(:includes) { |*| self }
           define_method(:find) { |&b| records.find(&b) }
@@ -94,13 +107,33 @@ class SeedCategoriesTest < Minitest::Test
     assert_equal 1, @created_groups.size
   end
 
+  def test_skips_groups_when_matching_tombstone_exists
+    tombstoned_recordable = Struct.new(:key).new("page-status")
+    tombstoned = Struct.new(:recordable, :trashed_at).new(tombstoned_recordable, Time.now)
+    root = build_root(groups: [tombstoned])
+
+    RecordingStudioCategorisable::Services::SeedCategories.call(
+      root_recording: root,
+      category_definitions: [
+        { key: "page-status", name: "Page Status" }
+      ]
+    )
+
+    assert_equal 0, @created_groups.size
+  end
+
   def test_duplicate_group_key_error_is_treated_as_already_seeded
     root = build_root(groups: [])
     root.define_singleton_method(:record) do |recordable_type, parent_recording: nil, &block|
       return super(recordable_type, parent_recording: parent_recording, &block) unless recordable_type == RecordingStudioCategorisable::CategoryGroup
 
-      record = RecordingStudioCategorisable::CategoryGroup.new
-      record.errors.add(:key, :taken)
+      errors = Object.new
+      errors.define_singleton_method(:of_kind?) do |attribute, error_type|
+        attribute == :key && error_type == :taken
+      end
+      record = Object.new
+      record.define_singleton_method(:is_a?) { |klass| klass == RecordingStudioCategorisable::CategoryGroup }
+      record.define_singleton_method(:errors) { errors }
 
       raise ActiveRecord::RecordInvalid.new(record)
     end
@@ -134,6 +167,37 @@ class SeedCategoriesTest < Minitest::Test
 
     assert_equal 1, @created_groups.size
     assert_equal 2, @created_items.size
+  end
+
+  def test_skips_items_when_matching_tombstone_exists
+    existing_item = Struct.new(:recordable, :trashed_at).new(Struct.new(:key).new("draft"), Time.now)
+    existing_group = Struct.new(:recordable, :child_items) do
+      define_method(:child_recordings) do
+        Struct.new(:records) do
+          define_method(:of_type) { |_type| self }
+          define_method(:includes) { |*| self }
+          define_method(:find) { |&block| records.find(&block) }
+          define_method(:to_a) { records }
+        end.new(child_items)
+      end
+    end.new(Struct.new(:key).new("page-status"), [existing_item])
+
+    root = build_root(groups: [existing_group])
+
+    RecordingStudioCategorisable::Services::SeedCategories.call(
+      root_recording: root,
+      category_definitions: [
+        {
+          key: "page-status",
+          name: "Page Status",
+          items: [
+            { key: "draft", name: "Draft", position: 1 }
+          ]
+        }
+      ]
+    )
+
+    assert_equal 0, @created_items.size
   end
 
   def test_returns_success_with_empty_list_when_no_definitions

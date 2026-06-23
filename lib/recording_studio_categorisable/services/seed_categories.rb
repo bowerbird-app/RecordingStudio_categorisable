@@ -5,7 +5,8 @@ module RecordingStudioCategorisable
     # Idempotently creates CategoryGroup and CategoryItem recordings from
     # the host application's category_definitions configuration.
     #
-    # Skips any group or item whose +key+ already exists (does not overwrite).
+    # Skips any group or item whose +key+ already exists, including a trashed
+    # recording tombstone left behind by a prior delete.
     #
     # @example
     #   RecordingStudioCategorisable::Services::SeedCategories.call(
@@ -66,7 +67,7 @@ module RecordingStudioCategorisable
         end
 
         group_recording
-      rescue ActiveRecord::RecordInvalid => error
+      rescue ::ActiveRecord::RecordInvalid => error
         # Another root can attempt the same key in the same boot cycle.
         # Treat duplicate key as already-seeded to keep seeding idempotent.
         return nil if duplicate_group_key_error?(error)

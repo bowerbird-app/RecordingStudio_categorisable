@@ -27,6 +27,15 @@ module RecordingStudioCategorisable
 
     class_methods do
       def categorises(attribute_name, selection:, category_group_key:, **options)
+        enable_category_reference(
+          attribute_name: attribute_name,
+          selection: selection,
+          category_group_key: category_group_key,
+          **options
+        )
+      end
+
+      def enable_category_reference(attribute_name:, selection:, category_group_key:, **options)
         field = build_category_field(
           attribute_name: attribute_name,
           selection: selection,
@@ -40,9 +49,9 @@ module RecordingStudioCategorisable
           registration.add_field(nil, field)
         end
 
-        define_singleton_method(attribute_name) do
-          recording_studio_category_fields.find { |existing_field| existing_field.key == field.key }
-        end
+        define_category_field_accessor(attribute_name, field)
+
+        field
       end
 
       def available_category_groups
@@ -64,6 +73,12 @@ module RecordingStudioCategorisable
           category_group_key: category_group_key,
           **options
         )
+      end
+
+      def define_category_field_accessor(attribute_name, field)
+        define_singleton_method(attribute_name) do
+          recording_studio_category_fields.find { |existing_field| existing_field.key == field.key }
+        end
       end
 
       def register_category_field(field)

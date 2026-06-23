@@ -6,9 +6,9 @@ module RecordingStudioCategorisable
     before_action :set_usage_report, only: %i[index show destroy]
 
     def index
-      recordings = current_root_recording
-                   .recordings_query(include_children: true, type: CategoryGroup)
-                   .includes(:recordable, :parent_recording)
+      recordings = active_recordings_scope(
+        current_root_recording.recordings_query(include_children: true, type: CategoryGroup)
+      ).includes(:recordable, :parent_recording)
 
       @category_group_recordings = recordings
                                    .to_a
@@ -19,10 +19,9 @@ module RecordingStudioCategorisable
     end
 
     def show
-      @category_item_recordings = @category_group_recording
-                                  .child_recordings
-                                  .of_type(CategoryItem)
-                                  .includes(:recordable)
+      @category_item_recordings = active_recordings_scope(
+        @category_group_recording.child_recordings.of_type(CategoryItem)
+      ).includes(:recordable)
                                   .sort_by do |recording|
         [recording.recordable.position || 0,
          recording.recordable.name.to_s.downcase]
@@ -51,11 +50,27 @@ module RecordingStudioCategorisable
     def update
       parent_recording = selected_parent_recording(default_parent: @category_group_recording.parent_recording)
       validate_parent_recording!(parent_recording)
+      ensure_group_update_allowed!(parent_recording)
 
       @category_group_recording.class.transaction do
-        current_root_recording.revise(@category_group_recording) do |group|
-          assign_category_group_attributes(group, exclude_recording_id: @category_group_recording.id)
+        group = @category_group_recording.recordable
+        original_key = group.key
+        assign_category_group_attributes(group, exclude_recording_id: @category_group_recording.id, validate_unique_key: false)
+
+        group.errors.add(:name, :blank) if group.name.blank?
+        group.errors.add(:key, :blank) if group.key.blank?
+        raise ActiveRecord::RecordInvalid, group if group.errors.any?
+
+        if group.key != original_key
+          validate_unique_key!(group, exclude_recording_id: @category_group_recording.id)
         end
+
+        @category_group_recording.recordable.class.where(id: group.id).update_all(
+          name: group.name,
+          key: group.key,
+          description: group.description,
+          updated_at: Time.current
+        )
 
         @category_group_recording.update!(parent_recording: parent_recording)
       end
@@ -74,16 +89,16 @@ module RecordingStudioCategorisable
         return
       end
 
-      current_root_recording.hard_delete(@category_group_recording, include_children: true)
+      destroy_recording_tree(@category_group_recording)
       redirect_to category_groups_path, notice: "Category group deleted."
     end
 
     private
 
-    def assign_category_group_attributes(group, exclude_recording_id: nil)
+    def assign_category_group_attributes(group, exclude_recording_id: nil, validate_unique_key: true)
       group.assign_attributes(category_group_params)
       group.key = group.key.parameterize if group.key.present?
-      validate_unique_key!(group, exclude_recording_id: exclude_recording_id)
+      validate_unique_key!(group, exclude_recording_id: exclude_recording_id) if validate_unique_key
     end
 
     def create_category_group_recording(parent_recording)
@@ -106,8 +121,9 @@ module RecordingStudioCategorisable
       requested_parent_id = category_group_params[:parent_recording_id].presence
       return current_root_recording if requested_parent_id.blank?
 
-      current_root_recording
-        .recordings_query(include_children: true)
+      active_recordings_scope(
+        current_root_recording.recordings_query(include_children: true)
+      )
         .includes(:parent_recording)
         .find(requested_parent_id)
     end
@@ -147,6 +163,7 @@ module RecordingStudioCategorisable
     def validate_unique_key!(group, exclude_recording_id: nil)
       duplicate_group = current_root_recording
                         .recordings_query(include_children: true, type: CategoryGroup)
+                        .yield_self { |scope| active_recordings_scope(scope) }
                         .includes(:recordable)
                         .find do |recording|
         recording.id != exclude_recording_id && recording.recordable.key == group.key
@@ -158,10 +175,45 @@ module RecordingStudioCategorisable
       raise ActiveRecord::RecordInvalid, group
     end
 
+    def ensure_group_update_allowed!(parent_recording)
+      capability = RecordingStudioCategorisable.configuration.category_group_capability_for(
+        @category_group_recording.recordable.key
+      )
+      return unless capability
+
+      current_group = @category_group_recording.recordable
+      requested_group = current_group.dup
+      requested_group.assign_attributes(category_group_params)
+
+      disallowed_changes = []
+      disallowed_changes << :name if requested_group.name != current_group.name && !capability.dig(:allow, :rename)
+      disallowed_changes << :description if requested_group.description != current_group.description && !capability.dig(:allow, :update_description)
+      disallowed_changes << :key if requested_group.key != current_group.key && !capability.dig(:allow, :update_key)
+      disallowed_changes << :parent_recording_id if parent_recording.id != @category_group_recording.parent_recording_id && !capability.dig(:allow, :move)
+
+      return if disallowed_changes.empty?
+
+      raise unauthorized_category_group_change_error(disallowed_changes)
+    end
+
+    def unauthorized_category_group_change_error(disallowed_changes)
+      UnauthorizedError.new(
+        "Category group changes are not allowed for: #{disallowed_changes.map(&:to_s).join(', ')}"
+      )
+    end
+
     def destroy_blocked_message(label, usage_count)
       suffix = usage_count == 1 ? "" : "s"
 
       "#{label} cannot be deleted while #{usage_count} assignment#{suffix} still use it."
+    end
+
+    def destroy_recording_tree(recording)
+      active_recordings_scope(recording.child_recordings).to_a.each do |child_recording|
+        destroy_recording_tree(child_recording)
+      end
+
+      recording.update!(trashed_at: Time.current)
     end
   end
 end

@@ -130,9 +130,9 @@ module RecordingStudioCategorisable
 
       cache = item_recordings_cache_for(group_recording)
       cache.fetch(group_recording.id) do
-        cache[group_recording.id] = group_recording
-          .child_recordings
-          .of_type(RecordingStudioCategorisable::CategoryItem)
+        cache[group_recording.id] = RecordingStudioCategorisable::RecordingVisibility.active_scope(
+          group_recording.child_recordings.of_type(RecordingStudioCategorisable::CategoryItem)
+        )
           .includes(:recordable)
           .to_a
       end
@@ -147,6 +147,7 @@ module RecordingStudioCategorisable
 
       grouped_recordings = root_recording
         .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
+        .yield_self { |scope| RecordingStudioCategorisable::RecordingVisibility.active_scope(scope) }
         .includes(:recordable)
         .group_by { |recording| recording.recordable.key.to_s }
 

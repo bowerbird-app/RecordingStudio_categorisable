@@ -25,8 +25,9 @@ module RecordingStudioCategorisable
     end
 
     def load_recording(recordable_type)
-      current_root_recording
-        .recordings_query(include_children: true, type: recordable_type)
+      active_recordings_scope(
+        current_root_recording.recordings_query(include_children: true, type: recordable_type)
+      )
         .includes(:recordable)
         .find(params[:id])
     end
@@ -44,8 +45,9 @@ module RecordingStudioCategorisable
     end
 
     def parent_recording_options
-      current_root_recording
-        .recordings_query(include_children: true)
+      active_recordings_scope(
+        current_root_recording.recordings_query(include_children: true)
+      )
         .includes(:recordable)
         .map do |recording|
           [
@@ -61,6 +63,10 @@ module RecordingStudioCategorisable
       return recordable.title if recordable.respond_to?(:title)
 
       recordable.class.model_name.human
+    end
+
+    def active_recordings_scope(scope)
+      RecordingStudioCategorisable::RecordingVisibility.active_scope(scope)
     end
 
     def render_forbidden(exception)

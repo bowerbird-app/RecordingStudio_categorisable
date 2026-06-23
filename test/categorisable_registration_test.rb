@@ -39,6 +39,25 @@ class CategorisableRegistrationTest < Minitest::Test
     Object.send(:remove_const, :CategorisableRegistrationExample) if Object.const_defined?(:CategorisableRegistrationExample)
   end
 
+  def test_enable_category_reference_registers_field_through_capability_path
+    klass = Class.new do
+      include RecordingStudioCategorisable::Categorisable
+    end
+
+    Object.const_set(:EnableCategoryReferenceExample, klass)
+    klass.enable_category_reference(
+      attribute_name: :status_category_item_recording_id,
+      selection: :single,
+      category_group_key: "status",
+      label: "Status"
+    )
+
+    assert_equal 1, klass.recording_studio_category_fields.size
+    assert_equal :single, klass.status_category_item_recording_id.selection
+  ensure
+    Object.send(:remove_const, :EnableCategoryReferenceExample) if Object.const_defined?(:EnableCategoryReferenceExample)
+  end
+
   def test_available_category_groups_returns_category_group_recordables
     klass = Class.new do
       include RecordingStudioCategorisable::Categorisable
