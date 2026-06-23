@@ -39,6 +39,28 @@ def ensure_root_access(root_recording:, actor:, role:, manager_actor:)
   raise "Failed to grant #{role} access to #{actor.email}: #{result.error}"
 end
 
+def destroy_recording_tree(recording)
+  recording.child_recordings.to_a.each do |child_recording|
+    destroy_recording_tree(child_recording)
+  end
+
+  recording.events.delete_all if recording.respond_to?(:events)
+  recording.recordable.class.where(id: recording.recordable_id).delete_all if recording.recordable.present?
+  RecordingStudio::Recording.unscoped.where(id: recording.id).delete_all
+end
+
+def purge_categories_from_root(root_recording)
+  return unless defined?(RecordingStudioCategorisable)
+
+  root_recording
+    .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
+    .includes(:recordable)
+    .to_a
+    .each do |group_recording|
+      destroy_recording_tree(group_recording)
+    end
+end
+
 # Create the admin user
 admin_user = User.find_or_create_by!(email: "admin@admin.com") do |u|
   u.password = "Password"
@@ -54,11 +76,33 @@ end
 # Create the workspace recordable
 workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
 
+admin_root = if defined?(RecordingStudioAdmin::Admin)
+               RecordingStudioAdmin::Admin.find_or_create_by!(key: "admin") do |admin|
+                 admin.name = "Admin"
+               end
+             end
+
 # Create the root recording
 root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
   recordable: workspace,
   parent_recording_id: nil
 )
+
+admin_root_recording = if admin_root
+                         RecordingStudio::Recording.unscoped.find_or_create_by!(
+                           recordable: admin_root,
+                           parent_recording_id: nil
+                         )
+                       end
+
+purge_categories_from_root(admin_root_recording) if admin_root_recording
+
+if defined?(RecordingStudioCategorisable::Services::SeedCategories)
+  RecordingStudioCategorisable::Services::SeedCategories.call(
+    root_recording: root_recording,
+    category_definitions: RecordingStudioCategorisable.category_definitions
+  )
+end
 
 Current.actor = admin_user
 ensure_root_access(root_recording: root_recording, actor: admin_user, role: :admin, manager_actor: admin_user)
@@ -115,3 +159,5 @@ end
 if status_group_recording && topics_group_recording
   puts "Seeded: Category groups '#{status_group_recording.recordable.name}' and '#{topics_group_recording.recordable.name}'"
 end
+
+puts "Seeded admin root: #{admin_root.name}" if admin_root

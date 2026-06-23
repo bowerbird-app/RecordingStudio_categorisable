@@ -16,6 +16,17 @@ GIT
       recording_studio (~> 3.0)
 
 GIT
+  remote: https://github.com/bowerbird-app/RecordingStudio_admin.git
+  revision: f6a3736316d3339167066a32ab02c4e34bc3cc15
+  specs:
+    recording_studio_admin (0.1.1)
+      flat_pack
+      importmap-rails
+      rails (~> 8.1.0)
+      recording_studio
+      tailwindcss-rails
+
+GIT
   remote: https://github.com/bowerbird-app/flatpack.git
   revision: b3f844aba83a84b6c9e999bda38136813045f341
   tag: v0.1.106
@@ -455,6 +466,7 @@ DEPENDENCIES
   rails (~> 8.1.1)
   recording_studio!
   recording_studio_accessible!
+  recording_studio_admin!
   recording_studio_categorisable!
   rubocop-rails-omakase
   solid_cable
@@ -582,6 +594,7 @@ CHECKSUMS
   rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
   recording_studio (3.0.0)
   recording_studio_accessible (0.3.2)
+  recording_studio_admin (0.1.1)
   recording_studio_categorisable (0.2.0)
   regexp_parser (2.11.3) sha256=ca13f381a173b7a93450e53459075c9b76a10433caadcb2f1180f2c741fc55a4
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835

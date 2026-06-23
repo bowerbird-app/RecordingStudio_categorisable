@@ -2,7 +2,9 @@
 
 RecordingStudio.configure do |config|
   # Registered delegated_type recordables (strings or classes)
-  config.recordable_types = (Array(config.recordable_types) + ["Workspace", "Page", "Brief"]).uniq
+  config.recordable_types = (
+    Array(config.recordable_types) + ["Workspace", "Page", "Brief", "RecordingStudioAdmin::Admin"]
+  ).uniq
 
   # Actor resolver for events when no actor is explicitly supplied
   config.actor = -> { Current.actor }
