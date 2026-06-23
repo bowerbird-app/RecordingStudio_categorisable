@@ -9,6 +9,7 @@ require "recording_studio_categorisable/categorisable_registration"
 require "recording_studio_categorisable/usage_report"
 require "recording_studio_categorisable/services/base_service"
 require "recording_studio_categorisable/services/example_service"
+require "recording_studio_categorisable/services/seed_categories"
 
 module RecordingStudioCategorisable
   class << self
@@ -22,6 +23,14 @@ module RecordingStudioCategorisable
 
     def register_categorisable(recordable_type, &)
       configuration.register_categorisable(recordable_type, &)
+    end
+
+    def category_definitions
+      configuration.category_definitions
+    end
+
+    def category_definitions=(definitions)
+      configuration.category_definitions = Array(definitions)
     end
   end
 end

@@ -7,13 +7,15 @@ module RecordingStudioCategorisable
     attr_accessor :ui_title,
                   :root_recording_resolver,
                   :authorization_resolver,
-                  :unauthorized_response_handler
+                  :unauthorized_response_handler,
+                  :category_definitions
     attr_reader :hooks, :categorisable_registrations
 
     def initialize
       @ui_title = "Categories"
       @hooks = Hooks.new
       @categorisable_registrations = {}
+      @category_definitions = []
     end
 
     def to_h

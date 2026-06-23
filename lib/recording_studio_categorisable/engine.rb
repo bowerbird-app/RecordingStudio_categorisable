@@ -94,6 +94,26 @@ module RecordingStudioCategorisable
       RecordingStudioCategorisable::Hooks.run(:after_initialize, self)
     end
 
+    initializer "recording_studio_categorisable.seed_categories_from_config",
+                after: "recording_studio_categorisable.register_recordable_types" do
+      config.to_prepare do
+        next unless defined?(RecordingStudio)
+
+        definitions = RecordingStudioCategorisable.category_definitions
+        next if definitions.blank?
+
+        root_recordings = RecordingStudio::Recording.where(parent_recording_id: nil)
+        next if root_recordings.empty?
+
+        root_recordings.find_each do |root_recording|
+          RecordingStudioCategorisable::Services::SeedCategories.call(
+            root_recording: root_recording,
+            category_definitions: definitions
+          )
+        end
+      end
+    end
+
     initializer "recording_studio_categorisable.register_recordable_types",
                 after: "recording_studio_categorisable.after_initialize" do
       config.to_prepare do
