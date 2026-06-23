@@ -26,13 +26,6 @@
       value: category_group.description,
       rows: 4
     ) %>
-
-    <%= render FlatPack::Select::Component.new(
-      name: "category_group[parent_recording_id]",
-      label: "Recording location",
-      options: parent_recording_options,
-      value: @category_group_recording&.parent_recording_id || current_root_recording.id
-    ) %>
   </div>
 
   <div class="mt-6 flex flex-wrap gap-3">

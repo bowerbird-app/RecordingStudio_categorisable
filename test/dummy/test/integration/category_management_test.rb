@@ -134,4 +134,25 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     )
     assert_equal @root_recording.id, @status_group_recording.reload.parent_recording_id
   end
+
+  test "category group update keeps existing parent when parent is not submitted" do
+    nested_group_recording = @root_recording.record(
+      RecordingStudioCategorisable::CategoryGroup,
+      parent_recording: @status_group_recording
+    ) do |group|
+      group.name = "Nested status"
+      group.slug = "nested-status"
+    end
+
+    patch "/recording_studio_categorisable/category_groups/#{nested_group_recording.id}", params: {
+      category_group: {
+        name: "Nested status updated",
+        slug: "nested-status",
+        description: "Updated"
+      }
+    }
+
+    assert_redirected_to "/recording_studio_categorisable/category_groups/#{nested_group_recording.id}"
+    assert_equal @status_group_recording.id, nested_group_recording.reload.parent_recording_id
+  end
 end

@@ -28,7 +28,7 @@ module RecordingStudioCategorisable
     end
 
     def create
-      parent_recording = selected_parent_recording
+      parent_recording = selected_parent_recording(default_parent: current_root_recording)
       category_group_recording = create_category_group_recording(parent_recording)
 
       redirect_to category_group_path(category_group_recording), notice: "Category group created."
@@ -42,7 +42,7 @@ module RecordingStudioCategorisable
     end
 
     def update
-      parent_recording = selected_parent_recording
+      parent_recording = selected_parent_recording(default_parent: @category_group_recording.parent_recording)
       validate_parent_recording!(parent_recording)
 
       @category_group_recording.class.transaction do
@@ -92,8 +92,11 @@ module RecordingStudioCategorisable
       params.require(:category_group).permit(:name, :slug, :description)
     end
 
-    def selected_parent_recording
-      requested_parent_id = params.dig(:category_group, :parent_recording_id).presence
+    def selected_parent_recording(default_parent: current_root_recording)
+      category_group_params = params.fetch(:category_group, {})
+      return default_parent unless category_group_params.key?(:parent_recording_id)
+
+      requested_parent_id = category_group_params[:parent_recording_id].presence
       return current_root_recording if requested_parent_id.blank?
 
       current_root_recording

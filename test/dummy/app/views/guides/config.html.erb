@@ -33,5 +33,41 @@ end</code></pre>
     label: "Topics"
 end</code></pre>
     </section>
+
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">Adding a new category field — end-to-end flow</h2>
+      <div class="space-y-6 text-xs leading-relaxed text-(--surface-muted-content-color)">
+        <p>There are three steps to wire a new category field into a model. The order of the first two steps doesn't matter — you can declare the DSL first and create the group later, or the other way around.</p>
+
+        <div>
+          <h3 class="mb-1 text-sm font-medium text-(--surface-content-color)">1. Add the database column</h3>
+          <p>Create a migration to add the attribute column on your model's table.</p>
+          <pre class="mt-2 overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code># Single-select (stores one UUID)
+add_column :pages, :status_category_item_recording_id, :uuid
+
+# Multi-select (stores an array of UUIDs — PostgreSQL array column)
+add_column :pages, :topic_category_item_recording_ids, :uuid, array: true, default: []</code></pre>
+        </div>
+
+        <div>
+          <h3 class="mb-1 text-sm font-medium text-(--surface-content-color)">2. Declare the field on your model</h3>
+          <p>Add a <code>categorises</code> declaration that maps the column to a category group slug.</p>
+          <pre class="mt-2 overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>class Page < ApplicationRecord
+  include RecordingStudioCategorisable::Categorisable
+
+  categorises :status_category_item_recording_id,
+    selection: :single,
+    category_group_slug: "page-status",
+    label: "Status"
+end</code></pre>
+        </div>
+
+        <div>
+          <h3 class="mb-1 text-sm font-medium text-(--surface-content-color)">3. Create the category group and items in the UI</h3>
+          <p>Head to <b>Categories</b> in the sidebar and create a group with a slug that matches your <code>category_group_slug</code> (here, <code>page-status</code>). Add items inside it (e.g. Draft, Published, Archived).</p>
+          <p>The gem matches the field to the group purely by slug — as long as the slugs match, the category options will appear on your model's form on the next page load.</p>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
