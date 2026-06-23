@@ -27,20 +27,20 @@
       <h2 class="text-base font-semibold">Page.available_category_groups</h2>
       <p class="text-(--surface-muted-content-color)">Return the category group recordables declared for the model.</p>
       <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>Page.available_category_groups
-    # =&gt; [#&lt;RecordingStudioCategorisable::CategoryGroup slug: "page-status"&gt;,
-    #     #&lt;RecordingStudioCategorisable::CategoryGroup slug: "page-topics"&gt;]</code></pre>
+    # =&gt; [#&lt;RecordingStudioCategorisable::CategoryGroup key: "page-status"&gt;,
+    #     #&lt;RecordingStudioCategorisable::CategoryGroup key: "page-topics"&gt;]</code></pre>
     </section>
 
     <section class="space-y-2">
       <h2 class="text-base font-semibold">page.assigned_category_items</h2>
-      <p class="text-(--surface-muted-content-color)">Return the category item recordables selected by a page, optionally filtered by category group slug.</p>
+      <p class="text-(--surface-muted-content-color)">Return the category item recordables selected by a page, optionally filtered by category group key.</p>
       <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>page.assigned_category_items
-# =&gt; [#&lt;RecordingStudioCategorisable::CategoryItem slug: "published"&gt;,
-#     #&lt;RecordingStudioCategorisable::CategoryItem slug: "product"&gt;]
+# =&gt; [#&lt;RecordingStudioCategorisable::CategoryItem key: "published"&gt;,
+#     #&lt;RecordingStudioCategorisable::CategoryItem key: "product"&gt;]
 
 page.assigned_category_items(category_group: "page-topics")
-# =&gt; [#&lt;RecordingStudioCategorisable::CategoryItem slug: "product"&gt;,
-#     #&lt;RecordingStudioCategorisable::CategoryItem slug: "studio"&gt;]</code></pre>
+# =&gt; [#&lt;RecordingStudioCategorisable::CategoryItem key: "product"&gt;,
+#     #&lt;RecordingStudioCategorisable::CategoryItem key: "studio"&gt;]</code></pre>
     </section>
 
   </div>

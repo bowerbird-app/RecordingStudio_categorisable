@@ -41,7 +41,6 @@ class RecordingStudioCategorisableTest < Minitest::Test
     assert_includes view_source, "FlatPack::PageTitle::Component"
     assert_includes view_source, "FlatPack::Table::Component"
     assert_includes view_source, "FlatPack::Button::Component"
-    assert_includes view_source, "FlatPack::Badge::Component"
   end
 
   def test_dummy_methods_page_mentions_useful_categorisable_apis

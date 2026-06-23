@@ -19,7 +19,7 @@ RecordingStudioCategorisable.configure do |config|
 
   # Explicitly register categorisable recordables if you prefer initializer-based configuration.
   # config.register_categorisable("Page") do |registration|
-  #   registration.single_select :status_category_item_recording_id, category_group_slug: "page-status"
-  #   registration.multi_select :topic_category_item_recording_ids, category_group_slug: "page-topics"
+  #   registration.single_select :status_category_item_recording_id, category_group_key: "page-status"
+  #   registration.multi_select :topic_category_item_recording_ids, category_group_key: "page-topics"
   # end
 end

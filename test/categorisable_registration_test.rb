@@ -7,8 +7,8 @@ class CategorisableRegistrationTest < Minitest::Test
   def test_add_field_replaces_existing_field_with_same_attribute
     registration = RecordingStudioCategorisable::CategorisableRegistration.new("Page")
 
-    registration.single_select(:status_category_item_recording_id, category_group_slug: "status")
-    registration.multi_select(:status_category_item_recording_id, category_group_slug: "topics")
+    registration.single_select(:status_category_item_recording_id, category_group_key: "status")
+    registration.multi_select(:status_category_item_recording_id, category_group_key: "topics")
 
     assert_equal 1, registration.fields.size
     assert registration.field(:status_category_item_recording_id).multiple?
@@ -16,8 +16,8 @@ class CategorisableRegistrationTest < Minitest::Test
 
   def test_fields_for_filters_to_supported_attributes
     registration = RecordingStudioCategorisable::CategorisableRegistration.new("Page")
-    registration.single_select(:status_category_item_recording_id, category_group_slug: "status")
-    registration.multi_select(:topic_category_item_recording_ids, category_group_slug: "topics")
+    registration.single_select(:status_category_item_recording_id, category_group_key: "status")
+    registration.multi_select(:topic_category_item_recording_ids, category_group_key: "topics")
 
     recordable = Struct.new(:status_category_item_recording_id).new(nil)
 
@@ -30,8 +30,8 @@ class CategorisableRegistrationTest < Minitest::Test
     end
 
     Object.const_set(:CategorisableRegistrationExample, klass)
-    klass.categorises(:status_category_item_recording_id, selection: :single, category_group_slug: "status")
-    klass.categorises(:topic_category_item_recording_ids, selection: :multiple, category_group_slug: "topics")
+    klass.categorises(:status_category_item_recording_id, selection: :single, category_group_key: "status")
+    klass.categorises(:topic_category_item_recording_ids, selection: :multiple, category_group_key: "topics")
 
     assert klass.status_category_item_recording_id.single?
     assert klass.topic_category_item_recording_ids.multiple?
@@ -43,15 +43,15 @@ class CategorisableRegistrationTest < Minitest::Test
     klass = Class.new do
       include RecordingStudioCategorisable::Categorisable
 
-      categorises :status_category_item_recording_id, selection: :single, category_group_slug: "page-status"
-      categorises :topic_category_item_recording_ids, selection: :multiple, category_group_slug: "page-topics"
+      categorises :status_category_item_recording_id, selection: :single, category_group_key: "page-status"
+      categorises :topic_category_item_recording_ids, selection: :multiple, category_group_key: "page-topics"
     end
 
     Object.const_set(:AvailableCategoryGroupsExample, klass)
 
     group_relation = Struct.new(:records) do
-      def where(slug:)
-        records.select { |record| slug.include?(record.slug) }
+      def where(key:)
+        records.select { |record| key.include?(record.key) }
       end
 
       def to_a
@@ -59,21 +59,21 @@ class CategorisableRegistrationTest < Minitest::Test
       end
     end
 
-    group_one = Struct.new(:slug, :name).new("page-status", "Page status")
-    group_two = Struct.new(:slug, :name).new("page-topics", "Page topics")
+    group_one = Struct.new(:key, :name).new("page-status", "Page status")
+    group_two = Struct.new(:key, :name).new("page-topics", "Page topics")
 
     RecordingStudioCategorisable.const_set(:CategoryGroup, Class.new) unless RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
-    RecordingStudioCategorisable::CategoryGroup.singleton_class.define_method(:where) do |slug:|
+    RecordingStudioCategorisable::CategoryGroup.singleton_class.define_method(:where) do |key:|
       group_relation = Struct.new(:records) do
         def to_a
           records
         end
       end
 
-      group_relation.new([group_one, group_two].select { |group| slug.include?(group.slug) })
+      group_relation.new([group_one, group_two].select { |group| key.include?(group.key) })
     end
 
-    assert_equal %w[page-status page-topics], klass.available_category_groups.map(&:slug)
+    assert_equal %w[page-status page-topics], klass.available_category_groups.map(&:key)
   ensure
     Object.send(:remove_const, :AvailableCategoryGroupsExample) if Object.const_defined?(:AvailableCategoryGroupsExample)
     RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) if RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
@@ -85,15 +85,15 @@ class CategorisableRegistrationTest < Minitest::Test
 
       attr_accessor :status_category_item_recording_id, :topic_category_item_recording_ids
 
-      categorises :status_category_item_recording_id, selection: :single, category_group_slug: "page-status"
-      categorises :topic_category_item_recording_ids, selection: :multiple, category_group_slug: "page-topics"
+      categorises :status_category_item_recording_id, selection: :single, category_group_key: "page-status"
+      categorises :topic_category_item_recording_ids, selection: :multiple, category_group_key: "page-topics"
     end
 
     Object.const_set(:AssignedCategoryItemsExample, klass)
 
-  published = Struct.new(:slug).new("published")
-  product = Struct.new(:slug).new("product")
-  studio = Struct.new(:slug).new("studio")
+  published = Struct.new(:key).new("published")
+  product = Struct.new(:key).new("product")
+  studio = Struct.new(:key).new("studio")
 
     recordings = [
       Struct.new(:id, :recordable).new("status-1", published),
@@ -114,8 +114,8 @@ class CategorisableRegistrationTest < Minitest::Test
     page.status_category_item_recording_id = "status-1"
     page.topic_category_item_recording_ids = %w[topic-1 topic-2]
 
-    assert_equal %w[published product studio], page.assigned_category_items.map(&:slug)
-    assert_equal %w[product studio], page.assigned_category_items(category_group: "page-topics").map(&:slug)
+    assert_equal %w[published product studio], page.assigned_category_items.map(&:key)
+    assert_equal %w[product studio], page.assigned_category_items(category_group: "page-topics").map(&:key)
   ensure
     Object.send(:remove_const, :RecordingStudio) if Object.const_defined?(:RecordingStudio)
     Object.send(:remove_const, :AssignedCategoryItemsExample) if Object.const_defined?(:AssignedCategoryItemsExample)

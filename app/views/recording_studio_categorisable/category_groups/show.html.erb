@@ -66,8 +66,8 @@
        <% end
      end %>
 
-  <% item_slug_cell = lambda do |category_item_recording|
-       category_item_recording.recordable.slug
+  <% item_key_cell = lambda do |category_item_recording|
+       category_item_recording.recordable.key
      end %>
 
   <% item_position_cell = lambda do |category_item_recording|
@@ -121,7 +121,7 @@
 
   <%= render FlatPack::Table::Component.new(data: @category_item_recordings) do |table| %>
     <% table.column(title: "Name", html: item_name_cell) %>
-    <% table.column(title: "Slug", html: item_slug_cell) %>
+    <% table.column(title: "Key", html: item_key_cell) %>
     <% table.column(title: "Position", html: item_position_cell) %>
     <% table.column(title: "Usage", html: item_usage_cell) %>
     <% table.column(title: "Actions", html: item_actions_cell) %>

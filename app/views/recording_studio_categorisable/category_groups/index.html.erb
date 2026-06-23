@@ -26,8 +26,8 @@
        <% end
      end %>
 
-  <% slug_cell = lambda do |category_group_recording|
-      category_group_recording.recordable.slug
+  <% key_cell = lambda do |category_group_recording|
+      category_group_recording.recordable.key
      end %>
 
   <% location_cell = lambda do |category_group_recording|
@@ -66,7 +66,7 @@
 
   <%= render FlatPack::Table::Component.new(data: @category_group_recordings) do |table| %>
     <% table.column(title: "Name", html: name_cell) %>
-    <% table.column(title: "Slug", html: slug_cell) %>
+    <% table.column(title: "Key", html: key_cell) %>
     <% table.column(title: "Location", html: location_cell) %>
     <% table.column(title: "Items", html: items_cell) %>
     <% table.column(title: "Usage", html: usage_cell) %>

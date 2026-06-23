@@ -9,10 +9,10 @@
     ) %>
 
     <%= render FlatPack::TextInput::Component.new(
-      name: "category_item[slug]",
-      label: "Slug",
-      value: category_item.slug,
-      error: category_item.errors[:slug].first,
+      name: "category_item[key]",
+      label: "Key",
+      value: category_item.key,
+      error: category_item.errors[:key].first,
       required: true
     ) %>
 

@@ -42,12 +42,12 @@ class UsageReportTest < Minitest::Test
     status_field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :status_category_item_recording_id,
       selection: :single,
-      category_group_slug: "status"
+      category_group_key: "status"
     )
     topics_field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :topic_category_item_recording_ids,
       selection: :multiple,
-      category_group_slug: "topics"
+      category_group_key: "topics"
     )
 
     page_struct = Struct.new(:status_category_item_recording_id, :topic_category_item_recording_ids)
@@ -70,7 +70,7 @@ class UsageReportTest < Minitest::Test
     field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :status_category_item_recording_id,
       selection: :single,
-      category_group_slug: "status"
+      category_group_key: "status"
     )
 
     page_struct = Struct.new(:status_category_item_recording_id)

@@ -55,11 +55,11 @@ module RecordingStudioCategorisable
 
     def assign_category_item_attributes(item)
       item.assign_attributes(category_item_params)
-      item.slug = item.slug.parameterize if item.slug.present?
+      item.key = item.key.parameterize if item.key.present?
     end
 
     def category_item_params
-      params.require(:category_item).permit(:name, :slug, :description, :position)
+      params.require(:category_item).permit(:name, :key, :description, :position)
     end
 
     def next_position

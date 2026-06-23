@@ -6,9 +6,16 @@ module RecordingStudioCategorisable
     before_action :set_usage_report, only: %i[index show destroy]
 
     def index
-      @category_group_recordings = current_root_recording
-                                   .recordings_query(include_children: true, type: CategoryGroup)
-                                   .includes(:recordable, :parent_recording)
+      recordings = current_root_recording
+                   .recordings_query(include_children: true, type: CategoryGroup)
+                   .includes(:recordable, :parent_recording)
+
+      @category_group_recordings = recordings
+                                   .to_a
+                                   .select { |recording| recording.recordable.present? }
+                                   .group_by(&:recordable_id)
+                                   .values
+                                   .map { |versions| versions.max_by(&:created_at) }
     end
 
     def show
@@ -75,8 +82,8 @@ module RecordingStudioCategorisable
 
     def assign_category_group_attributes(group, exclude_recording_id: nil)
       group.assign_attributes(category_group_params)
-      group.slug = group.slug.parameterize if group.slug.present?
-      validate_unique_slug!(group, exclude_recording_id: exclude_recording_id)
+      group.key = group.key.parameterize if group.key.present?
+      validate_unique_key!(group, exclude_recording_id: exclude_recording_id)
     end
 
     def create_category_group_recording(parent_recording)
@@ -89,7 +96,7 @@ module RecordingStudioCategorisable
     end
 
     def category_group_params
-      params.require(:category_group).permit(:name, :slug, :description)
+      params.require(:category_group).permit(:name, :key, :description)
     end
 
     def selected_parent_recording(default_parent: current_root_recording)
@@ -137,17 +144,17 @@ module RecordingStudioCategorisable
       @usage_report = UsageReport.new
     end
 
-    def validate_unique_slug!(group, exclude_recording_id: nil)
+    def validate_unique_key!(group, exclude_recording_id: nil)
       duplicate_group = current_root_recording
                         .recordings_query(include_children: true, type: CategoryGroup)
                         .includes(:recordable)
                         .find do |recording|
-        recording.id != exclude_recording_id && recording.recordable.slug == group.slug
+        recording.id != exclude_recording_id && recording.recordable.key == group.key
       end
 
       return unless duplicate_group
 
-      group.errors.add(:slug, "has already been taken within this root")
+      group.errors.add(:key, "has already been taken within this root")
       raise ActiveRecord::RecordInvalid, group
     end
 

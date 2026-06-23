@@ -7,7 +7,7 @@ class CategoryFieldTest < Minitest::Test
     field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :status_category_item_recording_id,
       selection: :single,
-      category_group_slug: "page-status"
+      category_group_key: "page-status"
     )
 
     recordable = Struct.new(:status_category_item_recording_id).new("recording-1")
@@ -19,7 +19,7 @@ class CategoryFieldTest < Minitest::Test
     field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :topic_category_item_recording_ids,
       selection: :multiple,
-      category_group_slug: "page-topics"
+      category_group_key: "page-topics"
     )
 
     recordable = Struct.new(:topic_category_item_recording_ids).new(["alpha", "", "beta", "alpha"])
@@ -32,7 +32,7 @@ class CategoryFieldTest < Minitest::Test
     field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :topic_category_item_recording_ids,
       selection: :multiple,
-      category_group_slug: "page-topics",
+      category_group_key: "page-topics",
       value_writer: ->(_recordable, value) { received_value = value }
     )
 
@@ -45,10 +45,10 @@ class CategoryFieldTest < Minitest::Test
     field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :status_category_item_recording_id,
       selection: :single,
-      category_group_slug: "page-status"
+      category_group_key: "page-status"
     )
 
-    group = Struct.new(:slug)
+    group = Struct.new(:key)
     relation = Struct.new(:records) do
       def includes(*)
         records
@@ -66,7 +66,7 @@ class CategoryFieldTest < Minitest::Test
       field.resolve_group_recording(root_recording: root_recording)
     end
 
-    assert_match("multiple category groups share slug", error.message)
+    assert_match("multiple category groups share key", error.message)
   ensure
     RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
   end
@@ -75,7 +75,7 @@ class CategoryFieldTest < Minitest::Test
     field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :status_category_item_recording_id,
       selection: :single,
-      category_group_slug: "page-status"
+      category_group_key: "page-status"
     )
 
     item_recordings = [
@@ -141,6 +141,6 @@ class CategoryFieldTest < Minitest::Test
 
         relation.new(recordable.records)
       end
-    end.new(id, Struct.new(:slug, :records).new("page-status", item_recordings), 0)
+    end.new(id, Struct.new(:key, :records).new("page-status", item_recordings), 0)
   end
 end

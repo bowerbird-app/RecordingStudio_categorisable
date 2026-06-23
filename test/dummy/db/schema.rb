@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -52,23 +52,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_000003) do
   create_table "recording_studio_categorisable_category_groups", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
+    t.string "key", null: false
     t.string "name", null: false
-    t.string "slug", null: false
     t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_recording_studio_categorisable_category_groups_on_key", unique: true
     t.index ["name"], name: "index_recording_studio_categorisable_category_groups_on_name"
-    t.index ["slug"], name: "index_recording_studio_categorisable_category_groups_on_slug"
   end
 
   create_table "recording_studio_categorisable_category_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
+    t.string "key", null: false
     t.string "name", null: false
     t.integer "position", default: 0, null: false
-    t.string "slug", null: false
     t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_recording_studio_categorisable_category_items_on_key"
     t.index ["name"], name: "index_recording_studio_categorisable_category_items_on_name"
     t.index ["position"], name: "idx_on_position_162df0e6f0"
-    t.index ["slug"], name: "index_recording_studio_categorisable_category_items_on_slug"
   end
 
   create_table "recording_studio_device_sessions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

@@ -7,11 +7,11 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     @status_group_recording = @root_recording.recordings_query(
       include_children: true,
       type: RecordingStudioCategorisable::CategoryGroup
-    ).includes(:recordable).find { |recording| recording.recordable.slug == "page-status" }
+    ).includes(:recordable).find { |recording| recording.recordable.key == "page-status" }
     @published_item_recording = @status_group_recording.child_recordings
                                .of_type(RecordingStudioCategorisable::CategoryItem)
                                .includes(:recordable)
-                               .find { |recording| recording.recordable.slug == "published" }
+                               .find { |recording| recording.recordable.key == "published" }
   end
 
   test "category item deletion is blocked while used by a page" do
@@ -37,14 +37,14 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
       parent_recording: @status_group_recording
     ) do |group|
       group.name = "Nested status"
-      group.slug = "nested-status"
+      group.key = "nested-status"
     end
     nested_item_recording = @root_recording.record(
       RecordingStudioCategorisable::CategoryItem,
       parent_recording: nested_group_recording
     ) do |item|
       item.name = "Blocked status"
-      item.slug = "blocked-status"
+      item.key = "blocked-status"
       item.position = 99
     end
     page_recording = @root_recording.recordings_query(type: Page).includes(:recordable).first
@@ -59,11 +59,11 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     assert RecordingStudio::Recording.exists?(@status_group_recording.id)
   end
 
-  test "duplicate category group slugs are rejected within a root" do
+  test "duplicate category group keys are rejected within a root" do
     post "/recording_studio_categorisable/category_groups", params: {
       category_group: {
         name: "Duplicate status",
-        slug: "page-status",
+        key: "page-status",
         parent_recording_id: @root_recording.id
       }
     }
@@ -76,7 +76,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     patch "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}", params: {
       category_group: {
         name: "",
-        slug: @status_group_recording.recordable.slug,
+        key: @status_group_recording.recordable.key,
         description: @status_group_recording.recordable.description,
         parent_recording_id: @root_recording.id
       }
@@ -95,7 +95,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
       params: {
         category_item: {
           name: "",
-          slug: @published_item_recording.recordable.slug,
+          key: @published_item_recording.recordable.key,
           description: @published_item_recording.recordable.description,
           position: @published_item_recording.recordable.position
         }
@@ -115,13 +115,13 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
       parent_recording: @status_group_recording
     ) do |group|
       group.name = "Nested status"
-      group.slug = "nested-status"
+      group.key = "nested-status"
     end
 
     patch "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}", params: {
       category_group: {
         name: @status_group_recording.recordable.name,
-        slug: @status_group_recording.recordable.slug,
+        key: @status_group_recording.recordable.key,
         description: @status_group_recording.recordable.description,
         parent_recording_id: nested_group_recording.id
       }
@@ -141,13 +141,13 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
       parent_recording: @status_group_recording
     ) do |group|
       group.name = "Nested status"
-      group.slug = "nested-status"
+      group.key = "nested-status"
     end
 
     patch "/recording_studio_categorisable/category_groups/#{nested_group_recording.id}", params: {
       category_group: {
         name: "Nested status updated",
-        slug: "nested-status",
+        key: "nested-status",
         description: "Updated"
       }
     }

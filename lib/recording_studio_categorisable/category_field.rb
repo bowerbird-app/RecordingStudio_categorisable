@@ -3,17 +3,17 @@
 module RecordingStudioCategorisable
   # rubocop:disable Metrics/ClassLength
   class CategoryField
-    GROUP_RECORDINGS_CACHE_IVAR = :@recording_studio_categorisable_group_recordings_by_slug
+    GROUP_RECORDINGS_CACHE_IVAR = :@recording_studio_categorisable_group_recordings_by_key
     ITEM_RECORDINGS_CACHE_IVAR = :@recording_studio_categorisable_item_recordings_by_group_id
 
     SELECTIONS = %i[single multiple].freeze
 
-    attr_reader :attribute_name, :selection, :category_group_slug, :group_resolver
+    attr_reader :attribute_name, :selection, :category_group_key, :group_resolver
 
-    def initialize(attribute_name:, selection:, category_group_slug:, **options)
+    def initialize(attribute_name:, selection:, category_group_key:, **options)
       @attribute_name = attribute_name.to_sym
       @selection = selection.to_sym
-      @category_group_slug = category_group_slug.to_s
+      @category_group_key = category_group_key.to_s
       @label = options[:label]
       @value_reader = options[:value_reader]
       @value_writer = options[:value_writer]
@@ -80,7 +80,7 @@ module RecordingStudioCategorisable
 
       if group_recordings.many?
         raise AmbiguousCategoryGroupError,
-              "multiple category groups share slug #{category_group_slug.inspect}"
+              "multiple category groups share key #{category_group_key.inspect}"
       end
 
       group_recordings.first
@@ -105,12 +105,12 @@ module RecordingStudioCategorisable
     end
 
     def group_recordings_for(root_recording)
-      cached_group_recordings_by_slug(root_recording).fetch(category_group_slug, [])
+      cached_group_recordings_by_key(root_recording).fetch(category_group_key, [])
     end
 
     def validate!
       raise ArgumentError, "attribute_name is required" if attribute_name.blank?
-      raise ArgumentError, "category_group_slug is required" if category_group_slug.blank?
+      raise ArgumentError, "category_group_key is required" if category_group_key.blank?
       return if SELECTIONS.include?(selection)
 
       raise ArgumentError, "selection must be one of: #{SELECTIONS.join(', ')}"
@@ -138,7 +138,7 @@ module RecordingStudioCategorisable
       end
     end
 
-    def cached_group_recordings_by_slug(root_recording)
+    def cached_group_recordings_by_key(root_recording)
       return {} if root_recording.blank?
 
       if root_recording.instance_variable_defined?(GROUP_RECORDINGS_CACHE_IVAR)
@@ -148,7 +148,7 @@ module RecordingStudioCategorisable
       grouped_recordings = root_recording
         .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
         .includes(:recordable)
-        .group_by { |recording| recording.recordable.slug.to_s }
+        .group_by { |recording| recording.recordable.key.to_s }
 
       root_recording.instance_variable_set(GROUP_RECORDINGS_CACHE_IVAR, grouped_recordings)
     end

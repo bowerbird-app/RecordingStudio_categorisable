@@ -10,7 +10,7 @@ module RecordingStudioCategorisable
 
     def assigned_category_items(category_group: nil)
       fields = self.class.recording_studio_category_fields
-      fields = fields.select { |field| field.category_group_slug == category_group.to_s } if category_group.present?
+      fields = fields.select { |field| field.category_group_key == category_group.to_s } if category_group.present?
 
       item_recording_ids = fields.flat_map { |field| Array(field.read(self)) }.compact.uniq
       return [] if item_recording_ids.empty?
@@ -26,11 +26,11 @@ module RecordingStudioCategorisable
     end
 
     class_methods do
-      def categorises(attribute_name, selection:, category_group_slug:, **options)
+      def categorises(attribute_name, selection:, category_group_key:, **options)
         field = build_category_field(
           attribute_name: attribute_name,
           selection: selection,
-          category_group_slug: category_group_slug,
+          category_group_key: category_group_key,
           options: options
         )
 
@@ -46,22 +46,22 @@ module RecordingStudioCategorisable
       end
 
       def available_category_groups
-        category_group_slugs = recording_studio_category_fields.map(&:category_group_slug).uniq
-        return [] if category_group_slugs.empty?
+        category_group_keys = recording_studio_category_fields.map(&:category_group_key).uniq
+        return [] if category_group_keys.empty?
 
         RecordingStudioCategorisable::CategoryGroup
-          .where(slug: category_group_slugs)
+          .where(key: category_group_keys)
           .to_a
-          .sort_by { |group| [group.slug.to_s, group.name.to_s.downcase] }
+          .sort_by { |group| [group.key.to_s, group.name.to_s.downcase] }
       end
 
       private
 
-      def build_category_field(attribute_name:, selection:, category_group_slug:, options:)
+      def build_category_field(attribute_name:, selection:, category_group_key:, options:)
         RecordingStudioCategorisable::CategoryField.new(
           attribute_name: attribute_name,
           selection: selection,
-          category_group_slug: category_group_slug,
+          category_group_key: category_group_key,
           **options
         )
       end

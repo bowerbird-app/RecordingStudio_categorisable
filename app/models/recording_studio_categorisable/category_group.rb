@@ -7,7 +7,7 @@ module RecordingStudioCategorisable
     has_one :recording, as: :recordable, class_name: "RecordingStudio::Recording", inverse_of: :recordable
 
     validates :name, presence: true
-    validates :slug, presence: true, uniqueness: { case_sensitive: false }
+    validates :key, presence: true, uniqueness: { case_sensitive: false }
 
     def usage_count(usage_report = UsageReport.new)
       return 0 unless recording
