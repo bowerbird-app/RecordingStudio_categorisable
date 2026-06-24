@@ -7,20 +7,24 @@
 
   <div class="space-y-6 text-sm leading-6 text-(--surface-content-color)">
     <p>The category selector wraps FlatPack select inputs and supports both single-select and multi-select category fields.</p>
-    <p>The render call looks the same for both modes. The single vs multiple behavior is declared on the model field registration with <code>selection: :single</code> or <code>selection: :multiple</code>.</p>
+    <p>The render call looks the same for both modes. The single vs multiple behavior is declared with <code>Capabilities::Reference.enabled</code> using <code>selection: :single</code> or <code>selection: :multiple</code>.</p>
 
     <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>class Page < ApplicationRecord
-  include RecordingStudioCategorisable::Categorisable
-
-  categorises :status_category_item_recording_id,
+  RecordingStudioCategorisable::Capabilities::Reference.enabled(
+    recordable: self,
+    attribute_name: :status_category_item_recording_id,
     selection: :single,
     category_group_key: "page-status",
     label: "Status"
+  )
 
-  categorises :topic_category_item_recording_ids,
+  RecordingStudioCategorisable::Capabilities::Reference.enabled(
+    recordable: self,
+    attribute_name: :topic_category_item_recording_ids,
     selection: :multiple,
     category_group_key: "page-topics",
     label: "Topics"
+  )
 end</code></pre>
 
     <div class="space-y-3">

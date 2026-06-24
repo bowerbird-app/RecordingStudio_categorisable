@@ -1,73 +1,124 @@
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
   <%= render FlatPack::PageTitle::Component.new(
     title: "Config",
-    subtitle: "Runtime configuration for authorization and root recording resolution.",
+    subtitle: "Runtime configuration and capabilities setup for root-scoped category behavior.",
     variant: :h1
   ) %>
 
   <div class="space-y-8 text-sm leading-6 text-(--surface-content-color)">
     <section class="space-y-2">
       <h2 class="text-base font-semibold">Runtime configuration</h2>
-      <p class="text-(--surface-muted-content-color)">Configure the engine with a root recording resolver and authorization policy.</p>
+      <p class="text-(--surface-muted-content-color)">Configure the engine with root resolution and authorization. Both are required unless your controller already defines compatible fallback methods.</p>
       <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>RecordingStudioCategorisable.configure do |config|
+  # Optional: UI title shown in the mounted engine
+  config.ui_title = "Categories"
+
+  # REQUIRED unless your app controller already exposes current_root_recording.
+  # Must return the active root recording for the current request.
   config.root_recording_resolver = ->(controller) { controller.current_root_recording }
+
+  # REQUIRED unless your app controller already exposes
+  # authorize_recording_studio_categorisable!.
+  # Return true/false to authorize engine access.
   config.authorization_resolver = ->(controller) { controller.current_user.present? }
+
+  # OPTIONAL: customize unauthorized responses (403) with your own behavior.
+  # config.unauthorized_response_handler = ->(controller, exception) do
+  #   controller.render plain: exception.message, status: :forbidden
+  # end
 end</code></pre>
 
     </section>
 
     <section class="space-y-2">
-      <h2 class="text-base font-semibold">categorises</h2>
-      <p class="text-(--surface-muted-content-color)">Declare a category-backed attribute and whether it is single-select or multiple-select.</p>
-      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>class Page < ApplicationRecord
-  include RecordingStudioCategorisable::Categorisable
+      <h2 class="text-base font-semibold">Capabilities setup</h2>
+      <p class="text-(--surface-muted-content-color)">Use capabilities to define what category groups/items exist for each root type and how fields bind to those groups.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code># Example: in each root recordable class (Workspace/Admin/etc.)
+# root_recordable_type: use name to scope this capability to the class.
 
-  categorises :status_category_item_recording_id,
-    selection: :single,
-    category_group_key: "page-status",
-    label: "Status"
+# ------------------------------------------------------------
+# CategoryGroup capability
+# ------------------------------------------------------------
+RecordingStudioCategorisable::Capabilities::CategoryGroup.enabled(
+  # REQUIRED: stable key used to find this group
+  key: "page-topics",
 
-  categorises :topic_category_item_recording_ids,
-    selection: :multiple,
-    category_group_key: "page-topics",
-    label: "Topics"
-end</code></pre>
+  # REQUIRED: display name in UI
+  name: "Page Topics",
+
+  # OPTIONAL (default :edit): access role requirement for this group
+  # Common values: :view, :edit, :admin
+  access: :edit,
+
+  # OPTIONAL: scope capability to this root recordable class only
+  root_recordable_type: name,
+
+  # OPTIONAL: per-action toggles (all default false)
+  # rename              => allow changing group name
+  # reorder             => reserved for ordering behavior
+  # move                => allow changing parent in recording tree
+  # update_description  => allow description edits
+  allow: {
+    rename: true,
+    reorder: false,
+    move: true,
+    update_description: true
+  }
+
+  # OPTIONAL: any extra metadata can be passed via kwargs
+)
+
+# ------------------------------------------------------------
+# CategoryItems capability
+# ------------------------------------------------------------
+RecordingStudioCategorisable::Capabilities::CategoryItems.enabled(
+  # REQUIRED: group key that items belong to
+  group_key: "page-topics",
+
+  # OPTIONAL: scope capability to this root recordable class only
+  root_recordable_type: name,
+
+  # OPTIONAL: per-item action toggles (all default false)
+  # create             => allow new items
+  # update_name        => allow item name edits
+  # update_description => allow description edits
+  # update_position    => allow position edits
+  # delete             => allow deletion
+  allow: {
+    create: true,
+    update_name: true,
+    update_description: true,
+    update_position: true,
+    delete: true
+  }
+
+  # OPTIONAL: extra metadata via kwargs
+)
+
+# ------------------------------------------------------------
+# Reference capability
+# ------------------------------------------------------------
+RecordingStudioCategorisable::Capabilities::Reference.enabled(
+  # REQUIRED: model class to attach category field behavior to
+  recordable: self,
+
+  # REQUIRED: attribute on the recordable model
+  # single-select usually uses *_id
+  # multiple-select usually uses *_ids (array)
+  attribute_name: :topic_category_item_recording_ids,
+
+  # REQUIRED: :single or :multiple
+  selection: :multiple,
+
+  # REQUIRED: group key this field points to
+  category_group_key: "page-topics",
+
+  # OPTIONAL: display label for generated field metadata/UI
+  label: "Topics"
+
+  # OPTIONAL: additional options are forwarded into field registration
+)</code></pre>
     </section>
 
-    <section class="space-y-2">
-      <h2 class="text-base font-semibold">Adding a new category field — end-to-end flow</h2>
-      <div class="space-y-6 text-xs leading-relaxed text-(--surface-muted-content-color)">
-        <p>There are three steps to wire a new category field into a model. The order of the first two steps doesn't matter — you can declare the DSL first and create the group later, or the other way around.</p>
-
-        <div>
-          <h3 class="mb-1 text-sm font-medium text-(--surface-content-color)">1. Add the database column</h3>
-          <p>Create a migration to add the attribute column on your model's table.</p>
-          <pre class="mt-2 overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code># Single-select (stores one UUID)
-add_column :pages, :status_category_item_recording_id, :uuid
-
-# Multi-select (stores an array of UUIDs — PostgreSQL array column)
-add_column :pages, :topic_category_item_recording_ids, :uuid, array: true, default: []</code></pre>
-        </div>
-
-        <div>
-          <h3 class="mb-1 text-sm font-medium text-(--surface-content-color)">2. Declare the field on your model</h3>
-          <p>Add a <code>categorises</code> declaration that maps the column to a category group key.</p>
-          <pre class="mt-2 overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>class Page < ApplicationRecord
-  include RecordingStudioCategorisable::Categorisable
-
-  categorises :status_category_item_recording_id,
-    selection: :single,
-    category_group_key: "page-status",
-    label: "Status"
-end</code></pre>
-        </div>
-
-        <div>
-          <h3 class="mb-1 text-sm font-medium text-(--surface-content-color)">3. Create the category group and items in the UI</h3>
-          <p>Head to <b>Categories</b> in the sidebar and create a group with a key that matches your <code>category_group_key</code> (here, <code>page-status</code>). Add items inside it (e.g. Draft, Published, Archived).</p>
-          <p>The gem matches the field to the group purely by key — as long as the keys match, the category options will appear on your model's form on the next page load.</p>
-        </div>
-      </div>
-    </section>
   </div>
 </div>
