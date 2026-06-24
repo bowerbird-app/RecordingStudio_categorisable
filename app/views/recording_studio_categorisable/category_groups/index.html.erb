@@ -5,15 +5,7 @@
     title: RecordingStudioCategorisable.configuration.ui_title,
     subtitle: "Category groups available in the current recording scope.",
     variant: :h1
-  ) do |title| %>
-    <% title.actions do %>
-      <%= render FlatPack::Button::Component.new(
-        text: "New category group",
-        style: :primary,
-        url: new_category_group_path
-      ) %>
-    <% end %>
-  <% end %>
+  ) %>
 
   <% name_cell = lambda do |category_group_recording|
        category_group = category_group_recording.recordable
@@ -54,12 +46,14 @@
              size: :sm,
              url: category_group_path(category_group_recording)
            ) %>
-           <%= render FlatPack::Button::Component.new(
-             text: "Edit",
-            style: :secondary,
-             size: :sm,
-             url: edit_category_group_path(category_group_recording)
-           ) %>
+           <% if @editable_group_keys.include?(category_group_recording.recordable.key) %>
+             <%= render FlatPack::Button::Component.new(
+               text: "Edit",
+              style: :secondary,
+               size: :sm,
+               url: edit_category_group_path(category_group_recording)
+             ) %>
+           <% end %>
          </div>
        <% end
      end %>

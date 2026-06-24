@@ -19,14 +19,15 @@ module RecordingStudioCategorisable
       end
 
       redirect_to category_group_path(@category_group_recording), notice: "Category item created."
-    rescue ActiveRecord::RecordInvalid => error
-      @category_item = error.record
+    rescue ActiveRecord::RecordInvalid => e
+      @category_item = e.record
       render :new, status: :unprocessable_entity
     end
 
     def edit
       @category_item = @category_item_recording.recordable
       @item_usage_count = @usage_report.item_usage_count(@category_item_recording)
+      @editable_fields = editable_fields_for(@category_group_recording)
     end
 
     def update
@@ -37,9 +38,10 @@ module RecordingStudioCategorisable
       end
 
       redirect_to category_group_path(@category_group_recording), notice: "Category item updated."
-    rescue ActiveRecord::RecordInvalid => error
-      @category_item = error.record
+    rescue ActiveRecord::RecordInvalid => e
+      @category_item = e.record
       @item_usage_count = UsageReport.new.item_usage_count(@category_item_recording)
+      @editable_fields = editable_fields_for(@category_group_recording)
       render :edit, status: :unprocessable_entity
     end
 
@@ -96,7 +98,8 @@ module RecordingStudioCategorisable
 
     def category_item_capability
       RecordingStudioCategorisable.configuration.category_item_capability_for(
-        @category_group_recording.recordable.key
+        @category_group_recording.recordable.key,
+        root_recordable_type: current_root_recording.recordable_type
       )
     end
 
@@ -117,7 +120,11 @@ module RecordingStudioCategorisable
 
       disallowed_changes = []
       disallowed_changes << :name if requested_item.name != current_item.name && !capability.dig(:allow, :update_name)
-      disallowed_changes << :position if requested_item.position != current_item.position && !capability.dig(:allow, :update_position)
+      disallowed_changes << :description if requested_item.description != current_item.description && !capability.dig(
+        :allow, :update_description
+      )
+      disallowed_changes << :position if requested_item.position != current_item.position && !capability.dig(:allow,
+                                                                                                             :update_position)
       disallowed_changes << :key if requested_item.key != current_item.key && !capability.dig(:allow, :update_key)
 
       return if disallowed_changes.empty?
@@ -146,6 +153,21 @@ module RecordingStudioCategorisable
 
     def destroy_recording(recording)
       recording.update!(trashed_at: Time.current)
+    end
+
+    def editable_fields_for(category_group_recording)
+      capability = RecordingStudioCategorisable.configuration.category_item_capability_for(
+        category_group_recording.recordable.key,
+        root_recordable_type: current_root_recording.recordable_type
+      )
+
+      return { name: true, description: true, position: true } if capability.blank?
+
+      {
+        name: capability.dig(:allow, :update_name),
+        description: capability.dig(:allow, :update_description),
+        position: capability.dig(:allow, :update_position)
+      }
     end
   end
 end

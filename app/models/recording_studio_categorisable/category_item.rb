@@ -6,6 +6,8 @@ module RecordingStudioCategorisable
 
     has_one :recording, as: :recordable, class_name: "RecordingStudio::Recording", inverse_of: :recordable
 
+    before_validation :assign_key_from_name, on: :create
+
     validates :name, presence: true
     validates :key, presence: true
 
@@ -13,6 +15,15 @@ module RecordingStudioCategorisable
       return 0 unless recording
 
       usage_report.item_usage_count(recording)
+    end
+
+    private
+
+    def assign_key_from_name
+      return if key.present?
+      return if name.blank?
+
+      self.key = name.to_s.parameterize
     end
   end
 end

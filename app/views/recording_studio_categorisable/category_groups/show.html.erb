@@ -10,41 +10,21 @@
   ) %>
 
   <div class="flex flex-wrap gap-2">
-    <%= render FlatPack::Button::Component.new(
-      text: "Add item",
-      style: :primary,
-      size: :sm,
-      url: new_category_group_category_item_path(@category_group_recording)
-    ) %>
-    <%= render FlatPack::Button::Component.new(
-      text: "Edit group",
-      style: :secondary,
-      size: :sm,
-      url: edit_category_group_path(@category_group_recording)
-    ) %>
-    <% if @group_usage_count.zero? %>
+    <% if @can_create_items %>
       <%= render FlatPack::Button::Component.new(
-        text: "Delete group",
+        text: "Add item",
+        style: :primary,
+        size: :sm,
+        url: new_category_group_category_item_path(@category_group_recording)
+      ) %>
+    <% end %>
+    <% if @can_edit_group %>
+      <%= render FlatPack::Button::Component.new(
+        text: "Edit group",
         style: :secondary,
         size: :sm,
-        url: category_group_path(@category_group_recording),
-        method: :delete,
-        data: { turbo_confirm: "Delete this category group and all of its items?" }
+        url: edit_category_group_path(@category_group_recording)
       ) %>
-    <% else %>
-      <% delete_tooltip = "Delete is disabled while this category group is in use by #{pluralize(@group_usage_count, 'recording')}." %>
-      <%= render FlatPack::Tooltip::Component.new(text: delete_tooltip) do %>
-        <%= render FlatPack::Button::Component.new(
-          text: "Delete",
-          style: :secondary,
-          size: :sm,
-          url: category_group_path(@category_group_recording),
-          method: :delete,
-          class: "pointer-events-none cursor-not-allowed opacity-50",
-          aria: { disabled: true },
-          tabindex: -1
-        ) %>
-      <% end %>
     <% end %>
   </div>
 
@@ -85,35 +65,42 @@
 
        capture do %>
          <div class="flex flex-wrap gap-2">
-           <%= render FlatPack::Button::Component.new(
-             text: "Edit",
-             style: :secondary,
-             size: :sm,
-             url: edit_category_group_category_item_path(@category_group_recording, category_item_recording)
-           ) %>
-           <% if item_usage_count.zero? %>
+           <% if @can_edit_items %>
              <%= render FlatPack::Button::Component.new(
-               text: "Delete",
+               text: "Edit",
                style: :secondary,
                size: :sm,
-               url: category_group_category_item_path(@category_group_recording, category_item_recording),
-               method: :delete,
-               data: { turbo_confirm: "Delete this category item?" }
+               url: edit_category_group_category_item_path(@category_group_recording, category_item_recording)
              ) %>
-           <% else %>
-            <% delete_tooltip = "Delete is disabled while this category item is used by #{pluralize(item_usage_count, 'recording')}." %>
-            <%= render FlatPack::Tooltip::Component.new(text: delete_tooltip) do %>
-              <%= render FlatPack::Button::Component.new(
-                text: "Delete",
-                style: :secondary,
-                size: :sm,
-                url: category_group_category_item_path(@category_group_recording, category_item_recording),
-                method: :delete,
-                class: "pointer-events-none cursor-not-allowed opacity-50",
-                aria: { disabled: true },
-                tabindex: -1
-              ) %>
-            <% end %>
+           <% end %>
+           <% if @can_delete_items %>
+             <% if item_usage_count.zero? %>
+               <%= button_to category_group_category_item_path(@category_group_recording, category_item_recording),
+                             method: :delete,
+                             form: { class: "inline-block" },
+                             data: { turbo_confirm: "Delete this category item?" } do %>
+                 <%= render FlatPack::Button::Component.new(
+                   text: "Delete",
+                   style: :secondary,
+                   size: :sm,
+                   type: "submit"
+                 ) %>
+               <% end %>
+             <% else %>
+              <% delete_tooltip = "Delete is disabled while this category item is used by #{pluralize(item_usage_count, 'recording')}." %>
+              <%= render FlatPack::Tooltip::Component.new(text: delete_tooltip) do %>
+                <%= render FlatPack::Button::Component.new(
+                  text: "Delete",
+                  style: :secondary,
+                  size: :sm,
+                  url: category_group_category_item_path(@category_group_recording, category_item_recording),
+                  method: :delete,
+                  class: "pointer-events-none cursor-not-allowed opacity-50",
+                  aria: { disabled: true },
+                  tabindex: -1
+                ) %>
+              <% end %>
+             <% end %>
            <% end %>
          </div>
        <% end

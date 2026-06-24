@@ -93,4 +93,26 @@ class ConfigurationTest < Minitest::Test
     assert called
     assert handled
   end
+
+  def test_category_definitions_for_filters_to_enabled_groups_for_root_type
+    @configuration.category_definitions = [
+      { key: "page-status", name: "Page Status" },
+      { key: "color", name: "Color" },
+      { key: "orphaned", name: "Orphaned" }
+    ]
+    @configuration.enable_category_group(
+      key: "page-status",
+      name: "Page Status",
+      root_recordable_type: "Workspace"
+    )
+    @configuration.enable_category_group(
+      key: "color",
+      name: "Color",
+      root_recordable_type: "RecordingStudioAdmin::Admin"
+    )
+
+    definitions = @configuration.category_definitions_for(root_recordable_type: "Workspace")
+
+    assert_equal ["page-status"], definitions.map { |definition| definition[:key] }
+  end
 end

@@ -2,6 +2,16 @@
 
 require "test_helper"
 
+unless defined?(::ActiveRecord)
+  module ::ActiveRecord
+    class Base
+      def self.connection
+        @connection
+      end
+    end
+  end
+end
+
 class EngineTest < Minitest::Test
   def setup
     @original_configuration = RecordingStudioCategorisable.instance_variable_get(:@configuration)
@@ -136,6 +146,64 @@ class EngineTest < Minitest::Test
     end
     RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
     RecordingStudioCategorisable.send(:remove_const, :CategoryItem) unless defined_item_class
+  end
+
+  def test_seed_categories_from_config_filters_definitions_per_root_type
+    RecordingStudioCategorisable.category_definitions = [
+      { key: "page-status", name: "Page Status" },
+      { key: "color", name: "Color" }
+    ]
+    RecordingStudioCategorisable.configuration.enable_category_group(
+      key: "page-status",
+      name: "Page Status",
+      root_recordable_type: "Workspace"
+    )
+    RecordingStudioCategorisable.configuration.enable_category_group(
+      key: "color",
+      name: "Color",
+      root_recordable_type: "RecordingStudioAdmin::Admin"
+    )
+
+    workspace_root = Struct.new(:recordable_type).new("Workspace")
+    root_recordings = Object.new
+    root_recordings.define_singleton_method(:empty?) { false }
+    root_recordings.define_singleton_method(:find_each) do |&block|
+      [workspace_root].each(&block)
+    end
+
+    recording_studio_module = Module.new
+    recording_class = Class.new
+    recording_class.define_singleton_method(:where) do |parent_recording_id:|
+      root_recordings
+    end
+    recording_studio_module.const_set(:Recording, recording_class)
+    Object.const_set(:RecordingStudio, recording_studio_module)
+
+    connection = Object.new
+    connection.define_singleton_method(:table_exists?) do |table_name|
+      table_name == :recording_studio_recordings
+    end
+
+    seed_calls = []
+    to_prepare_block = nil
+    config_stub = Object.new
+    config_stub.define_singleton_method(:to_prepare) do |&block|
+      to_prepare_block = block
+    end
+
+    RecordingStudioCategorisable::Engine.stub(:config, config_stub) do
+      find_initializer("recording_studio_categorisable.seed_categories_from_config").block.call
+    end
+
+    ActiveRecord::Base.stub(:connection, connection) do
+      RecordingStudioCategorisable::Services::SeedCategories.stub(:call, lambda { |root_recording:, category_definitions:|
+        seed_calls << [root_recording.recordable_type, category_definitions.map { |definition| definition[:key] }]
+      }) do
+        to_prepare_block.call
+      end
+    end
+
+    assert_equal [["Workspace", ["page-status"]]], seed_calls
   end
 
   private

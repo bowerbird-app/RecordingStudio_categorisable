@@ -99,13 +99,17 @@ module RecordingStudioCategorisable
       config.to_prepare do
         next unless defined?(RecordingStudio)
 
-        definitions = RecordingStudioCategorisable.category_definitions
-        next if definitions.blank?
+        next unless ActiveRecord::Base.connection.table_exists?(:recording_studio_recordings)
 
         root_recordings = RecordingStudio::Recording.where(parent_recording_id: nil)
         next if root_recordings.empty?
 
         root_recordings.find_each do |root_recording|
+          definitions = RecordingStudioCategorisable.configuration.category_definitions_for(
+            root_recordable_type: root_recording.recordable_type
+          )
+          next if definitions.blank?
+
           RecordingStudioCategorisable::Services::SeedCategories.call(
             root_recording: root_recording,
             category_definitions: definitions
@@ -160,6 +164,107 @@ module RecordingStudioCategorisable
 
         ActionController::Base.descendants.each do |controller|
           RecordingStudioCategorisable::Engine.apply_controller_extensions(controller)
+        end
+      end
+    end
+
+    initializer "recording_studio_categorisable.seed_dummy_data",
+                after: "recording_studio_categorisable.seed_categories_from_config" do
+      config.to_prepare do
+        next unless defined?(RecordingStudio)
+        next if Rails.env.test?
+        next unless ActiveRecord::Base.connection.table_exists?(:recording_studio_recordings)
+
+        # Only seed if no roots exist yet (prevents duplicates on reload)
+        next if RecordingStudio::Recording.where(parent_recording_id: nil).exists?
+
+        # Create workspace
+        workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
+        workspace_root = RecordingStudio::Recording.unscoped.find_or_create_by!(
+          recordable: workspace,
+          parent_recording_id: nil
+        )
+
+        # Create admin root
+        admin_root = nil
+        admin_root_recording = nil
+        if defined?(RecordingStudioAdmin::Admin)
+          admin_root = RecordingStudioAdmin::Admin.find_or_create_by!(key: "admin") do |a|
+            a.name = "Admin"
+          end
+          admin_root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
+            recordable: admin_root,
+            parent_recording_id: nil
+          )
+        end
+
+        # Create sample page under workspace root
+        status_group = workspace_root.recordings_query(
+          include_children: true,
+          type: RecordingStudioCategorisable::CategoryGroup
+        ).includes(:recordable).find { |r| r.recordable&.key == "page-status" }
+
+        topics_group = workspace_root.recordings_query(
+          include_children: true,
+          type: RecordingStudioCategorisable::CategoryGroup
+        ).includes(:recordable).find { |r| r.recordable&.key == "page-topics" }
+
+        unless workspace_root.recordings_query(type: Page).exists?
+          published_item = status_group&.child_recordings
+                                       &.of_type(RecordingStudioCategorisable::CategoryItem)
+                                       &.includes(:recordable)
+                                       &.find { |r| r.recordable&.key == "published" }
+          product_item = topics_group&.child_recordings
+                                     &.of_type(RecordingStudioCategorisable::CategoryItem)
+                                     &.includes(:recordable)
+                                     &.find { |r| r.recordable&.key == "product" }
+          studio_item = topics_group&.child_recordings
+                                    &.of_type(RecordingStudioCategorisable::CategoryItem)
+                                    &.includes(:recordable)
+                                    &.find { |r| r.recordable&.key == "studio" }
+
+          workspace_root.record(Page) do |page|
+            page.title = "Studio launch plan"
+            page.body = "Seeded page for categorisable demo."
+            page.status_category_item_recording_id = published_item&.id
+            page.topic_category_item_recording_ids = [product_item&.id, studio_item&.id].compact
+          end
+        end
+
+        unless workspace_root.recordings_query(type: Brief).exists?
+          draft_item = status_group&.child_recordings
+                                   &.of_type(RecordingStudioCategorisable::CategoryItem)
+                                   &.includes(:recordable)
+                                   &.find { |r| r.recordable&.key == "draft" }
+
+          workspace_root.record(Brief) do |brief|
+            brief.title = "Studio status snapshot"
+            brief.body = "Seeded brief for categorisable demo."
+            brief.status_category_item_recording_id = draft_item&.id
+          end
+        end
+
+        # Create access
+        admin_user = User.find_by(email: "admin@admin.com")
+        viewer_user = User.find_by(email: "viewer@admin.com")
+
+        if admin_user && defined?(RecordingStudioAccessible) && !workspace_root.child_recordings.where(recordable_type: "RecordingStudio::Access").exists?
+          begin
+            RecordingStudioAccessible::AccessCreationContext.allow do
+              workspace_root.record(RecordingStudio::Access, parent_recording: workspace_root) do |a|
+                a.actor = admin_user
+                a.role = :admin
+              end
+            end
+            if viewer_user
+              workspace_root.record(RecordingStudio::Access, parent_recording: workspace_root) do |a|
+                a.actor = viewer_user
+                a.role = :view
+              end
+            end
+          rescue StandardError => _e
+            # access creation is best-effort in dev
+          end
         end
       end
     end

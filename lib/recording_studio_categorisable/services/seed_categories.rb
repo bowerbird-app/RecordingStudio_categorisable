@@ -37,15 +37,17 @@ module RecordingStudioCategorisable
 
         created = []
 
-        @category_definitions.each do |definition|
-          group_result = ensure_category_group(definition)
-          created << group_result if group_result
+        @root_recording.with_lock do
+          @category_definitions.each do |definition|
+            group_result = ensure_category_group(definition)
+            created << group_result if group_result
 
-          next unless group_result
+            next unless group_result
 
-          Array(definition[:items]).each do |item_definition|
-            item_result = ensure_category_item(group_result, item_definition)
-            created << item_result if item_result
+            Array(definition[:items]).each do |item_definition|
+              item_result = ensure_category_item(group_result, item_definition)
+              created << item_result if item_result
+            end
           end
         end
 
@@ -60,19 +62,20 @@ module RecordingStudioCategorisable
         existing = find_group_by_key(key)
         return nil if existing
 
-        group_recording = @root_recording.record(RecordingStudioCategorisable::CategoryGroup) do |group|
+        @root_recording.record(RecordingStudioCategorisable::CategoryGroup) do |group|
           group.key = key
           group.name = name
           group.description = definition[:description].presence
         end
-
-        group_recording
-      rescue ::ActiveRecord::RecordInvalid => error
+      rescue ::ActiveRecord::RecordInvalid => e
         # Another root can attempt the same key in the same boot cycle.
         # Treat duplicate key as already-seeded to keep seeding idempotent.
-        return nil if duplicate_group_key_error?(error)
+        return nil if duplicate_group_key_error?(e)
 
         raise
+      rescue ::ActiveRecord::RecordNotUnique
+        # During boot/migration transitions, treat duplicate-key races as seeded.
+        nil
       end
 
       def ensure_category_item(group_recording, item_definition)
