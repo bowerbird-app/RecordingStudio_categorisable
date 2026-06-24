@@ -29,7 +29,7 @@
      end %>
 
   <% items_cell = lambda do |category_group_recording|
-       category_group_recording.child_recordings.of_type(RecordingStudioCategorisable::CategoryItem).count
+      @item_counts_by_group_id.fetch(category_group_recording.id, 0)
      end %>
 
   <% usage_cell = lambda do |category_group_recording|

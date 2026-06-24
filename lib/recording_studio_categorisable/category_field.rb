@@ -78,12 +78,10 @@ module RecordingStudioCategorisable
 
       group_recordings = group_recordings_for(root_recording)
 
-      if group_recordings.many?
-        raise AmbiguousCategoryGroupError,
-              "multiple category groups share key #{category_group_key.inspect}"
-      end
-
-      group_recordings.first
+      # Multiple recordings can exist for a key in one root scope (for example
+      # after history-preserving revisions or imported legacy data). Pick the
+      # most recent recording deterministically so forms remain usable.
+      group_recordings.max_by { |recording| recording.respond_to?(:created_at) ? recording.created_at : 0 }
     end
 
     def available_item_recordings(root_recording:, recordable: nil)

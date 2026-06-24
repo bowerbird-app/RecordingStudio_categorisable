@@ -30,6 +30,10 @@ class SeedCategoriesTest < Minitest::Test
     created_items = @created_items
 
     Struct.new(:existing_groups, :existing_items_map) do
+      define_method(:with_lock) do |&block|
+        block.call
+      end
+
       define_method(:record) do |recordable_type, **, &block|
         recordable = Struct.new(:key, :name, :description, :position).new
         block.call(recordable)
@@ -198,6 +202,37 @@ class SeedCategoriesTest < Minitest::Test
     )
 
     assert_equal 0, @created_items.size
+  end
+
+  def test_backfills_missing_items_for_existing_group
+    existing_group = Struct.new(:recordable, :child_items) do
+      define_method(:child_recordings) do
+        Struct.new(:records) do
+          define_method(:of_type) { |_type| self }
+          define_method(:includes) { |*| self }
+          define_method(:find) { |&block| records.find(&block) }
+          define_method(:to_a) { records }
+        end.new(child_items)
+      end
+    end.new(Struct.new(:key).new("page-topics"), [])
+
+    root = build_root(groups: [existing_group])
+
+    RecordingStudioCategorisable::Services::SeedCategories.call(
+      root_recording: root,
+      category_definitions: [
+        {
+          key: "page-topics",
+          name: "Page Topics",
+          items: [
+            { key: "launch", name: "Launch", position: 3 }
+          ]
+        }
+      ]
+    )
+
+    assert_equal 0, @created_groups.size
+    assert_equal 1, @created_items.size
   end
 
   def test_returns_success_with_empty_list_when_no_definitions

@@ -41,7 +41,7 @@ class CategoryFieldTest < Minitest::Test
     assert_equal %w[alpha beta], received_value
   end
 
-  def test_resolve_group_recording_raises_when_slug_is_ambiguous
+  def test_resolve_group_recording_selects_latest_recording_when_key_is_ambiguous
     field = RecordingStudioCategorisable::CategoryField.new(
       attribute_name: :status_category_item_recording_id,
       selection: :single,
@@ -49,11 +49,13 @@ class CategoryFieldTest < Minitest::Test
     )
 
     group = Struct.new(:key)
+    newest = Time.now
+    oldest = newest - 3600
     relation = Struct.new(:records) do
       def includes(*)
         records
       end
-    end.new(category_group_recordings(group))
+    end.new(category_group_recordings(group, oldest:, newest:))
     root_recording = Struct.new(:recordings) do
       def recordings_query(**)
         recordings
@@ -62,13 +64,13 @@ class CategoryFieldTest < Minitest::Test
     defined_group_class = RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
     RecordingStudioCategorisable.const_set(:CategoryGroup, Class.new) unless defined_group_class
 
-    error = assert_raises(RecordingStudioCategorisable::AmbiguousCategoryGroupError) do
-      field.resolve_group_recording(root_recording: root_recording)
-    end
+    resolved = field.resolve_group_recording(root_recording: root_recording)
 
-    assert_match("multiple category groups share key", error.message)
+    assert_equal newest, resolved.created_at
   ensure
-    RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
+    if !defined_group_class && RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
+      RecordingStudioCategorisable.send(:remove_const, :CategoryGroup)
+    end
   end
 
   def test_available_item_recordings_reuses_cached_group_and_item_queries
@@ -97,16 +99,20 @@ class CategoryFieldTest < Minitest::Test
     assert_equal 1, root_recording.recordings_query_calls
     assert_equal 1, group_recording.child_recordings_calls
   ensure
-    RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) unless defined_group_class
-    RecordingStudioCategorisable.send(:remove_const, :CategoryItem) unless defined_item_class
+    if !defined_group_class && RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
+      RecordingStudioCategorisable.send(:remove_const, :CategoryGroup)
+    end
+    if !defined_item_class && RecordingStudioCategorisable.const_defined?(:CategoryItem, false)
+      RecordingStudioCategorisable.send(:remove_const, :CategoryItem)
+    end
   end
 
   private
 
-  def category_group_recordings(group)
+  def category_group_recordings(group, oldest:, newest:)
     [
-      Struct.new(:recordable).new(group.new("page-status")),
-      Struct.new(:recordable).new(group.new("page-status"))
+      Struct.new(:recordable, :created_at).new(group.new("page-status"), oldest),
+      Struct.new(:recordable, :created_at).new(group.new("page-status"), newest)
     ]
   end
 

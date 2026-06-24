@@ -320,12 +320,6 @@ class ApplicationController < ActionController::Base
         next
       end
 
-      existing = current_root_recording
-        .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
-        .includes(:recordable)
-        .find { |recording| recording.recordable&.key.to_s == group_def[:key] }
-      next if existing
-
       configured = configured_definitions.find { |d| d[:key].to_s == group_def[:key] }
 
       {

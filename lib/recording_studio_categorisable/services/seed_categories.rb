@@ -39,8 +39,9 @@ module RecordingStudioCategorisable
 
         @root_recording.with_lock do
           @category_definitions.each do |definition|
-            group_result = ensure_category_group(definition)
-            created << group_result if group_result
+            existing_group = find_group_by_key(definition[:key].to_s)
+            group_result = existing_group || ensure_category_group(definition)
+            created << group_result if group_result && existing_group.blank?
 
             next unless group_result
 

@@ -22,6 +22,8 @@ module RecordingStudioCategorisable
                              .select { |recording| editable_from_capability?(recording.recordable.key) }
                              .map { |recording| recording.recordable.key }
                              .uniq
+
+      @item_counts_by_group_id = visible_item_counts_for(@category_group_recordings)
     end
 
     def show
@@ -209,7 +211,7 @@ module RecordingStudioCategorisable
       disallowed_changes << :description if requested_group.description != current_group.description && !capability.dig(
         :allow, :update_description
       )
-      disallowed_changes << :key if requested_group.key != current_group.key && !capability.dig(:allow, :update_key)
+      disallowed_changes << :key if requested_group.key != current_group.key
       disallowed_changes << :parent_recording_id if parent_recording.id != @category_group_recording.parent_recording_id && !capability.dig(
         :allow, :move
       )
@@ -260,11 +262,11 @@ module RecordingStudioCategorisable
 
     def editable_fields_for(category_group_recording)
       capability = category_group_capability_for(category_group_recording.recordable.key)
-      return { name: true, key: true, description: true, move: true } unless capability
+      return { name: true, key: false, description: true, move: true } unless capability
 
       {
         name: capability.dig(:allow, :rename),
-        key: capability.dig(:allow, :update_key),
+        key: false,
         description: capability.dig(:allow, :update_description),
         move: capability.dig(:allow, :move)
       }
@@ -297,11 +299,10 @@ module RecordingStudioCategorisable
     end
 
     def allowed_update_attributes(capability)
-      return %i[name key description] unless capability
+      return %i[name description] unless capability
 
       [].tap do |allowed|
         allowed << :name if capability.dig(:allow, :rename)
-        allowed << :key if capability.dig(:allow, :update_key)
         allowed << :description if capability.dig(:allow, :update_description)
       end
     end
@@ -318,6 +319,20 @@ module RecordingStudioCategorisable
       end
 
       recording.update!(trashed_at: Time.current)
+    end
+
+    def visible_item_counts_for(group_recordings)
+      group_ids = group_recordings.map(&:id)
+      return {} if group_ids.empty?
+
+      active_recordings_scope(
+        RecordingStudio::Recording.where(
+          parent_recording_id: group_ids,
+          recordable_type: RecordingStudioCategorisable::CategoryItem.name
+        )
+      ).reorder(nil)
+       .group(:parent_recording_id)
+       .count
     end
   end
 end

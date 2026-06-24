@@ -98,6 +98,43 @@ class CategorisableRegistrationTest < Minitest::Test
     RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) if RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
   end
 
+  def test_available_category_groups_deduplicates_by_key
+    klass = Class.new do
+      include RecordingStudioCategorisable::Categorisable
+
+      categorises :status_category_item_recording_id, selection: :single, category_group_key: "page-status"
+    end
+
+    Object.const_set(:AvailableCategoryGroupsDedupExample, klass)
+
+    old_group = Struct.new(:key, :name, :updated_at, :created_at).new(
+      "page-status", "Page status old", Time.now - 300, Time.now - 600
+    )
+    new_group = Struct.new(:key, :name, :updated_at, :created_at).new(
+      "page-status", "Page status new", Time.now, Time.now
+    )
+
+    RecordingStudioCategorisable.const_set(:CategoryGroup, Class.new) unless RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
+    RecordingStudioCategorisable::CategoryGroup.singleton_class.define_method(:where) do |key:|
+      relation = Struct.new(:records) do
+        def to_a
+          records
+        end
+      end
+
+      relation.new([old_group, new_group].select { |group| key.include?(group.key) })
+    end
+
+    result = klass.available_category_groups
+
+    assert_equal 1, result.size
+    assert_equal "page-status", result.first.key
+    assert_equal "Page status new", result.first.name
+  ensure
+    Object.send(:remove_const, :AvailableCategoryGroupsDedupExample) if Object.const_defined?(:AvailableCategoryGroupsDedupExample)
+    RecordingStudioCategorisable.send(:remove_const, :CategoryGroup) if RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
+  end
+
   def test_assigned_category_items_returns_selected_category_item_recordables
     klass = Class.new do
       include RecordingStudioCategorisable::Categorisable

@@ -61,6 +61,9 @@ module RecordingStudioCategorisable
         RecordingStudioCategorisable::CategoryGroup
           .where(key: category_group_keys)
           .to_a
+          .group_by { |group| group.key.to_s }
+          .values
+          .map { |groups| groups.max_by { |group| group.try(:updated_at) || group.try(:created_at) || 0 } }
           .sort_by { |group| [group.key.to_s, group.name.to_s.downcase] }
       end
 
