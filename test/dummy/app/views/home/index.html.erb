@@ -19,13 +19,6 @@
             url: new_brief_path
           ) %>
         <% end %>
-        <% if defined?(RecordingStudioAdmin::Engine) %>
-          <%= render FlatPack::Button::Component.new(
-            text: "Admin Root",
-            style: :secondary,
-            url: "/admin"
-          ) %>
-        <% end %>
       </div>
     <% end %>
   <% end %>
