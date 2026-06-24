@@ -25,6 +25,7 @@ Rails.application.routes.draw do
   get "methods", to: "guides#methods"
   get "components", to: "guides#components"
   get "recording-tree", to: "guides#recording_tree"
+  post "root_recordings/switch", to: "root_recordings#switch", as: :switch_root_recordings
   resources :pages, only: %i[new create edit update]
   resources :briefs, only: %i[new create edit update]
 

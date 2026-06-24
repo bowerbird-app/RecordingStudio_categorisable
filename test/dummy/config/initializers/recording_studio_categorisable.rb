@@ -19,5 +19,15 @@ RecordingStudioCategorisable.category_definitions = [
       { key: "studio", name: "Studio", position: 2 },
       { key: "launch", name: "Launch", position: 3 }
     ]
+  },
+  {
+    key: "color",
+    name: "Color",
+    description: "Single-select color for pages.",
+    items: [
+      { key: "red", name: "Red", position: 1 },
+      { key: "green", name: "Green", position: 2 },
+      { key: "blue", name: "Blue", position: 3 }
+    ]
   }
 ]

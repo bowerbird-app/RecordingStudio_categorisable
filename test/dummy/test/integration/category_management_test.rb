@@ -105,6 +105,27 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     assert RecordingStudio::Recording.exists?(new_item.id)
   end
 
+  test "category group show hides item actions when item capabilities are disabled" do
+    topics_recording = latest_visible_group_recording_for("page-topics")
+    topic_item_recording = latest_visible_item_recording_for(topics_recording, "product")
+
+    get "/recording_studio_categorisable/category_groups/#{topics_recording.id}"
+
+    assert_response :success
+    assert_not_includes(
+      response.body,
+      "/recording_studio_categorisable/category_groups/#{topics_recording.id}/category_items/new"
+    )
+    assert_not_includes(
+      response.body,
+      "/recording_studio_categorisable/category_groups/#{topics_recording.id}/category_items/#{topic_item_recording.id}/edit"
+    )
+    assert_not_includes(
+      response.body,
+      "/recording_studio_categorisable/category_groups/#{topics_recording.id}/category_items/#{topic_item_recording.id}"
+    )
+  end
+
   test "viewer access returns forbidden" do
     sign_out :user
     sign_in User.find_by!(email: "viewer@admin.com")
@@ -113,6 +134,25 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
     assert_includes response.body, "You are not authorized to manage categories"
+  end
+
+  test "viewer access can manage configured category group when capability access is view" do
+    RecordingStudioCategorisable.configure do |config|
+      config.enable_category_group(
+        key: "page-status",
+        name: "Page Status",
+        access: :view,
+        allow: { rename: true, update_description: false, move: false, update_key: false }
+      )
+    end
+
+    sign_out :user
+    sign_in User.find_by!(email: "viewer@admin.com")
+
+    get "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/edit"
+
+    assert_response :success
+    assert_includes response.body, "Edit category group"
   end
 
   test "category group deletion is blocked while a descendant item is in use" do
@@ -212,6 +252,29 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     assert_equal "Published Updated", @published_item_recording.reload.recordable.name
   end
 
+  test "category item create auto-generates key when key is omitted" do
+    post "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items", params: {
+      category_item: {
+        name: "Needs Generated Key",
+        description: "Created without key field",
+        position: 999
+      }
+    }
+
+    assert_redirected_to "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}"
+
+    created_item = @status_group_recording
+      .child_recordings
+      .of_type(RecordingStudioCategorisable::CategoryItem)
+      .includes(:recordable)
+      .to_a
+      .map(&:recordable)
+      .find { |item| item.name == "Needs Generated Key" }
+
+    refute_nil created_item
+    assert_equal "needs-generated-key", created_item.key
+  end
+
   test "invalid category item updates keep submitting to the update route" do
     patch(
       "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items/#{@published_item_recording.id}",
@@ -258,6 +321,70 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     assert_equal @root_recording.id, @status_group_recording.reload.parent_recording_id
   end
 
+  test "category groups index hides edit when capability is missing for a key" do
+    status_recording = latest_visible_group_recording_for("page-status")
+    RecordingStudioCategorisable.configuration.category_group_capabilities.delete("page-status")
+
+    get "/recording_studio_categorisable/category_groups"
+
+    assert_response :success
+    assert_not_includes(
+      response.body,
+      "/recording_studio_categorisable/category_groups/#{status_recording.id}/edit"
+    )
+  end
+
+  test "category groups index hides edit when all allow flags are false" do
+    status_recording = latest_visible_group_recording_for("page-status")
+    topics_recording = latest_visible_group_recording_for("page-topics")
+
+    RecordingStudioCategorisable.configure do |config|
+      config.enable_category_group(
+        key: "page-topics",
+        name: "Page Topics",
+        root_recordable_type: "RecordingStudioAdmin::Admin",
+        allow: { rename: true, reorder: false, move: true, update_description: true, update_key: true }
+      )
+    end
+
+    get "/recording_studio_categorisable/category_groups"
+
+    assert_response :success
+    assert_includes(
+      response.body,
+      "/recording_studio_categorisable/category_groups/#{status_recording.id}/edit"
+    )
+    assert_not_includes(
+      response.body,
+      "/recording_studio_categorisable/category_groups/#{topics_recording.id}/edit"
+    )
+  end
+
+  test "category groups index hides groups that only exist in definitions" do
+    RecordingStudioCategorisable.configuration.expected_category_groups["color"] = {
+      key: "color",
+      name: "Color",
+      root_recordable_types: [@root_recording.recordable_type]
+    }
+
+    color_recording = @root_recording.record(
+      RecordingStudioCategorisable::CategoryGroup,
+      parent_recording: @root_recording
+    ) do |group|
+      group.name = "Color"
+      group.key = "color"
+    end
+
+    get "/recording_studio_categorisable/category_groups"
+
+    assert_response :success
+    assert_not_includes(
+      response.body,
+      "/recording_studio_categorisable/category_groups/#{color_recording.id}"
+    )
+    assert_not_includes response.body, ">Color<"
+  end
+
   test "category group update keeps existing parent when parent is not submitted" do
     nested_group_recording = @root_recording.record(
       RecordingStudioCategorisable::CategoryGroup,
@@ -277,5 +404,28 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to "/recording_studio_categorisable/category_groups/#{nested_group_recording.id}"
     assert_equal @status_group_recording.id, nested_group_recording.reload.parent_recording_id
+  end
+
+  private
+
+  def latest_visible_group_recording_for(key)
+    @root_recording
+      .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
+      .where(trashed_at: nil)
+      .includes(:recordable)
+      .to_a
+      .select { |recording| recording.recordable&.key == key }
+      .max_by(&:created_at)
+  end
+
+  def latest_visible_item_recording_for(group_recording, key)
+    group_recording
+      .child_recordings
+      .of_type(RecordingStudioCategorisable::CategoryItem)
+      .where(trashed_at: nil)
+      .includes(:recordable)
+      .to_a
+      .select { |recording| recording.recordable&.key == key }
+      .max_by(&:created_at)
   end
 end

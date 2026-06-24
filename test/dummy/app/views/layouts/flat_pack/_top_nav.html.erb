@@ -16,12 +16,23 @@
   <% end %>
 
   <% nav.center do %>
-    <div class="hidden text-sm font-medium text-(--surface-muted-content-color) md:block">
+    <div class="hidden text-sm font-medium text-(--surface-muted-content-color) md:block text-center">
       Recording Studio Categorisable
     </div>
   <% end %>
 
   <% nav.right do %>
+    <div class="hidden items-center gap-2 md:flex">
+      <%= form_with url: switch_root_recordings_path, method: :post, class: "flex items-center gap-2" do |form| %>
+        <%= form.label :root_recording_id, "Root", class: "text-xs font-medium uppercase tracking-wide text-(--surface-muted-content-color)" %>
+        <%= form.select :root_recording_id,
+            options_for_select(available_root_recording_options, current_root_recording&.id),
+                        {},
+                        class: "rounded-md border border-(--card-border-color) bg-[var(--surface-page-background-color)] px-2 py-1 text-sm",
+                        onchange: "this.form.requestSubmit()" %>
+      <% end %>
+    </div>
+
     <% if user_signed_in? %>
       <%= render FlatPack::Avatar::Component.new(
         name: current_user.try(:name).presence || current_user.email,

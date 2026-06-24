@@ -95,18 +95,24 @@ admin_root_recording = if admin_root
                          )
                        end
 
-purge_categories_from_root(admin_root_recording) if admin_root_recording
-
 if defined?(RecordingStudioCategorisable::Services::SeedCategories)
   RecordingStudioCategorisable::Services::SeedCategories.call(
     root_recording: root_recording,
     category_definitions: RecordingStudioCategorisable.category_definitions
   )
+
+  if admin_root_recording
+    RecordingStudioCategorisable::Services::SeedCategories.call(
+      root_recording: admin_root_recording,
+      category_definitions: RecordingStudioCategorisable.category_definitions
+    )
+  end
 end
 
 Current.actor = admin_user
 ensure_root_access(root_recording: root_recording, actor: admin_user, role: :admin, manager_actor: admin_user)
 ensure_root_access(root_recording: root_recording, actor: viewer_user, role: :view, manager_actor: admin_user)
+ensure_root_access(root_recording: admin_root_recording, actor: admin_user, role: :admin, manager_actor: admin_user) if admin_root_recording
 
 # Category groups and items are created by the engine initializer from
 # RecordingStudioCategorisable.category_definitions.
