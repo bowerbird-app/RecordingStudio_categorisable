@@ -21,13 +21,7 @@
 
     <% @category_fields.each do |field_state| %>
       <% field = field_state.fetch(:field) %>
-      <% item_recordings = field_state.fetch(:item_recordings) %>
-      <%= render RecordingStudioCategorisable::CategorySelector::Component.new(
-        name: "brief[#{field.attribute_name}]",
-        field: field,
-        recordable: brief,
-        item_recordings: item_recordings
-      ) %>
+      <%= render_categorisable_input(category_key: field.category_group_key, as: :select) %>
     <% end %>
   </div>
 
