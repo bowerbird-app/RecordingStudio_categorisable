@@ -43,5 +43,37 @@ page.assigned_category_items(category_group: "page-topics")
 #     #&lt;RecordingStudioCategorisable::CategoryItem key: "studio"&gt;]</code></pre>
     </section>
 
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">RecordingStudioCategorisable::CategoryAssignmentGuard</h2>
+      <p class="text-(--surface-muted-content-color)">Shared fail-closed checks for category assignment inputs. Use these checks in controllers or services to enforce required reference mappings and reject unexpected category params before writing data.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code># 1) Ensure required model references are present and mapped correctly
+RecordingStudioCategorisable::CategoryAssignmentGuard.ensure_required_references!(
+  fields: category_fields,
+  required_references: {
+    status_category_item_recording_id: "page-status",
+    topic_category_item_recording_ids: "page-topics"
+  }
+)
+
+# 2) Reject unexpected category params submitted by clients
+RecordingStudioCategorisable::CategoryAssignmentGuard.reject_unexpected_attributes!(
+  submitted_params: params.fetch(:page, ActionController::Parameters.new),
+  fields: category_fields
+)
+
+# Typical flow (controller/service)
+def validate_category_payload!(category_fields:, payload:, required_references:)
+  RecordingStudioCategorisable::CategoryAssignmentGuard.ensure_required_references!(
+    fields: category_fields,
+    required_references: required_references
+  )
+
+  RecordingStudioCategorisable::CategoryAssignmentGuard.reject_unexpected_attributes!(
+    submitted_params: payload,
+    fields: category_fields
+  )
+end</code></pre>
+    </section>
+
   </div>
 </div>
