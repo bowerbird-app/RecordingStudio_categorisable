@@ -27,6 +27,16 @@ GIT
       tailwindcss-rails
 
 GIT
+  remote: https://github.com/bowerbird-app/RecordingStudio_orderable.git
+  revision: fce23f728277756e52f84d3761e4e68fe2d54509
+  branch: copilot/create-recordingstudio-orderable
+  specs:
+    recording_studio_orderable (0.1.0)
+      rails (~> 8.1.0)
+      recording_studio (>= 0.1.0)
+      recording_studio_accessible (>= 0.1.0)
+
+GIT
   remote: https://github.com/bowerbird-app/flatpack.git
   revision: b3f844aba83a84b6c9e999bda38136813045f341
   tag: v0.1.106
@@ -468,6 +478,7 @@ DEPENDENCIES
   recording_studio_accessible!
   recording_studio_admin!
   recording_studio_categorisable!
+  recording_studio_orderable!
   rubocop-rails-omakase
   solid_cable
   solid_cache
@@ -596,6 +607,7 @@ CHECKSUMS
   recording_studio_accessible (0.3.2)
   recording_studio_admin (0.1.1)
   recording_studio_categorisable (0.2.0)
+  recording_studio_orderable (0.1.0)
   regexp_parser (2.11.3) sha256=ca13f381a173b7a93450e53459075c9b76a10433caadcb2f1180f2c741fc55a4
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
   responders (3.2.0) sha256=89c2d6ac0ae16f6458a11524cae4a8efdceba1a3baea164d28ee9046bd3df55a

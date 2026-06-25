@@ -8,11 +8,11 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
       config.enable_category_group(
         key: "page-status",
         name: "Page Status",
-        allow: { rename: true, update_description: true, move: true, update_key: false }
+        allow: { rename: true, update_description: true, update_key: false }
       )
       config.enable_category_items(
         group_key: "page-status",
-        allow: { create: true, update_name: true, update_position: true, update_key: false, delete: true }
+        allow: { create: true, update_name: true, orderable: true, update_key: false, delete: true }
       )
     end
 
@@ -52,7 +52,6 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     ) do |item|
       item.name = "Temporary"
       item.key = "temporary"
-      item.position = 9
     end
 
     delete "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items/#{removable_item.id}"
@@ -64,10 +63,10 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
       root_recording: @root_recording,
       category_definitions: [
         {
-          key: "page-status",
-          name: "Page Status",
+          group_key: "page-status",
+          group_name: "Page Status",
           items: [
-            { key: "temporary", name: "Temporary", position: 9 }
+            { key: "temporary", name: "Temporary" }
           ]
         }
       ]
@@ -86,7 +85,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     RecordingStudioCategorisable.configure do |config|
       config.enable_category_items(
         group_key: "page-status",
-        allow: { create: true, update_name: true, update_position: true, update_key: false, delete: false }
+        allow: { create: true, update_name: true, orderable: true, update_key: false, delete: false }
       )
     end
 
@@ -96,7 +95,6 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     ) do |item|
       item.name = "Temporary"
       item.key = "temporary"
-      item.position = 9
     end
 
     delete "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items/#{new_item.id}"
@@ -142,7 +140,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
         key: "page-status",
         name: "Page Status",
         access: :view,
-        allow: { rename: true, update_description: false, move: false, update_key: false }
+        allow: { rename: true, update_description: false, update_key: false }
       )
     end
 
@@ -169,7 +167,6 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     ) do |item|
       item.name = "Blocked status"
       item.key = "blocked-status"
-      item.position = 99
     end
     page_recording = @root_recording.recordings_query(type: Page).includes(:recordable).first
 
@@ -187,8 +184,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     post "/recording_studio_categorisable/category_groups", params: {
       category_group: {
         name: "Duplicate status",
-        key: "page-status",
-        parent_recording_id: @root_recording.id
+        key: "page-status"
       }
     }
 
@@ -201,8 +197,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
       category_group: {
         name: "",
         key: @status_group_recording.recordable.key,
-        description: @status_group_recording.recordable.description,
-        parent_recording_id: @root_recording.id
+        description: @status_group_recording.recordable.description
       }
     }
 
@@ -213,28 +208,6 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "category group move is blocked when move capability is disabled" do
-    RecordingStudioCategorisable.configure do |config|
-      config.enable_category_group(
-        key: "page-status",
-        name: "Page Status",
-        allow: { rename: true, update_description: true, move: false, update_key: false }
-      )
-    end
-
-    patch "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}", params: {
-      category_group: {
-        name: @status_group_recording.recordable.name,
-        key: @status_group_recording.recordable.key,
-        description: @status_group_recording.recordable.description,
-        parent_recording_id: @topics_group_recording.id
-      }
-    }
-
-    assert_response :forbidden
-    assert_equal @root_recording.id, @status_group_recording.reload.parent_recording_id
-  end
-
   test "category item updates are allowed when capability enables them" do
     patch(
       "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items/#{@published_item_recording.id}",
@@ -242,8 +215,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
         category_item: {
           name: "Published Updated",
           key: @published_item_recording.recordable.key,
-          description: @published_item_recording.recordable.description,
-          position: @published_item_recording.recordable.position
+          description: @published_item_recording.recordable.description
         }
       }
     )
@@ -256,8 +228,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     post "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items", params: {
       category_item: {
         name: "Needs Generated Key",
-        description: "Created without key field",
-        position: 999
+        description: "Created without key field"
       }
     }
 
@@ -282,8 +253,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
         category_item: {
           name: "",
           key: @published_item_recording.recordable.key,
-          description: @published_item_recording.recordable.description,
-          position: @published_item_recording.recordable.position
+          description: @published_item_recording.recordable.description
         }
       }
     )
@@ -293,32 +263,6 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
       %r{action="/recording_studio_categorisable/category_groups/#{@status_group_recording.id}/category_items/#{@published_item_recording.id}"},
       response.body
     )
-  end
-
-  test "category groups cannot be moved under their descendants" do
-    nested_group_recording = @root_recording.record(
-      RecordingStudioCategorisable::CategoryGroup,
-      parent_recording: @status_group_recording
-    ) do |group|
-      group.name = "Nested status"
-      group.key = "nested-status"
-    end
-
-    patch "/recording_studio_categorisable/category_groups/#{@status_group_recording.id}", params: {
-      category_group: {
-        name: @status_group_recording.recordable.name,
-        key: @status_group_recording.recordable.key,
-        description: @status_group_recording.recordable.description,
-        parent_recording_id: nested_group_recording.id
-      }
-    }
-
-    assert_response :unprocessable_entity
-    assert_includes(
-      response.body,
-      "Category groups cannot be moved under themselves or their descendants"
-    )
-    assert_equal @root_recording.id, @status_group_recording.reload.parent_recording_id
   end
 
   test "category groups index hides edit when capability is missing for a key" do
@@ -343,7 +287,7 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
         key: "page-topics",
         name: "Page Topics",
         root_recordable_type: "RecordingStudioAdmin::Admin",
-        allow: { rename: true, reorder: false, move: true, update_description: true, update_key: true }
+        allow: { rename: true, update_description: true, update_key: true }
       )
     end
 

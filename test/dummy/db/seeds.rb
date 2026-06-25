@@ -3,8 +3,6 @@
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
 def ensure_root_access(root_recording:, actor:, role:, manager_actor:)
-  return unless defined?(RecordingStudioAccessible)
-
   existing_access = root_recording
     .child_recordings
     .where(recordable_type: "RecordingStudio::Access")
@@ -50,8 +48,6 @@ def destroy_recording_tree(recording)
 end
 
 def purge_categories_from_root(root_recording)
-  return unless defined?(RecordingStudioCategorisable)
-
   root_recording
     .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
     .includes(:recordable)
@@ -76,11 +72,9 @@ end
 # Create the workspace recordable
 workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
 
-admin_root = if defined?(RecordingStudioAdmin::Admin)
-               RecordingStudioAdmin::Admin.find_or_create_by!(key: "admin") do |admin|
-                 admin.name = "Admin"
-               end
-             end
+admin_root = RecordingStudioAdmin::Admin.find_or_create_by!(key: "admin") do |admin|
+  admin.name = "Admin"
+end
 
 # Create the root recording
 root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
@@ -88,31 +82,25 @@ root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
   parent_recording_id: nil
 )
 
-admin_root_recording = if admin_root
-                         RecordingStudio::Recording.unscoped.find_or_create_by!(
-                           recordable: admin_root,
-                           parent_recording_id: nil
-                         )
-                       end
+admin_root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
+  recordable: admin_root,
+  parent_recording_id: nil
+)
 
-if defined?(RecordingStudioCategorisable::Services::SeedCategories)
-  RecordingStudioCategorisable::Services::SeedCategories.call(
-    root_recording: root_recording,
-    category_definitions: RecordingStudioCategorisable.category_definitions
-  )
+RecordingStudioCategorisable::Services::SeedCategories.call(
+  root_recording: root_recording,
+  category_definitions: RecordingStudioCategorisable.category_definitions
+)
 
-  if admin_root_recording
-    RecordingStudioCategorisable::Services::SeedCategories.call(
-      root_recording: admin_root_recording,
-      category_definitions: RecordingStudioCategorisable.category_definitions
-    )
-  end
-end
+RecordingStudioCategorisable::Services::SeedCategories.call(
+  root_recording: admin_root_recording,
+  category_definitions: RecordingStudioCategorisable.category_definitions
+)
 
 Current.actor = admin_user
 ensure_root_access(root_recording: root_recording, actor: admin_user, role: :admin, manager_actor: admin_user)
 ensure_root_access(root_recording: root_recording, actor: viewer_user, role: :view, manager_actor: admin_user)
-ensure_root_access(root_recording: admin_root_recording, actor: admin_user, role: :admin, manager_actor: admin_user) if admin_root_recording
+ensure_root_access(root_recording: admin_root_recording, actor: admin_user, role: :admin, manager_actor: admin_user)
 
 # Category groups and items are created by the engine initializer from
 # RecordingStudioCategorisable.category_definitions.
@@ -166,4 +154,4 @@ if status_group_recording && topics_group_recording
   puts "Seeded: Category groups '#{status_group_recording.recordable.name}' and '#{topics_group_recording.recordable.name}'"
 end
 
-puts "Seeded admin root: #{admin_root.name}" if admin_root
+puts "Seeded admin root: #{admin_root.name}"

@@ -75,7 +75,6 @@ class ApplicationController < ActionController::Base
 
   def authorize_recording_studio_categorisable!
     return false unless current_user.present?
-    return true unless defined?(RecordingStudioAccessible)
 
     root_recording = current_root_recording
     return false if root_recording.blank?
@@ -174,8 +173,6 @@ class ApplicationController < ActionController::Base
   end
 
   def configure_categorisable_capabilities_for_current_root
-    return unless defined?(RecordingStudioCategorisable)
-
     load_current_root_recordable_class_capabilities
 
     if admin_root_selected?
@@ -203,36 +200,46 @@ class ApplicationController < ActionController::Base
   end
 
   def configure_reference_capabilities
-    return unless defined?(RecordingStudioCategorisable::Capabilities::Reference)
-
     page_class = "Page".safe_constantize
     brief_class = "Brief".safe_constantize
 
     return if page_class.blank? || brief_class.blank?
 
-    RecordingStudioCategorisable::Capabilities::Reference.enabled(
-      recordable: page_class,
-      attribute_name: :status_category_item_recording_id,
-      selection: :single,
-      category_group_key: "page-status",
-      label: "Status"
+    RecordingStudio.enable_capability(:categorisable, on: page_class)
+    RecordingStudio.set_capability_options(
+      :categorisable,
+      on: page_class,
+      references: [
+        {
+          attribute_name: :status_category_item_recording_id,
+          selection: :single,
+          category_group_key: "page-status",
+          label: "Status"
+        },
+        {
+          attribute_name: :topic_category_item_recording_ids,
+          selection: :multiple,
+          category_group_key: "page-topics",
+          label: "Topics"
+        }
+      ]
     )
+    RecordingStudioCategorisable::Capabilities::Categorisable.apply_for(page_class)
 
-    RecordingStudioCategorisable::Capabilities::Reference.enabled(
-      recordable: page_class,
-      attribute_name: :topic_category_item_recording_ids,
-      selection: :multiple,
-      category_group_key: "page-topics",
-      label: "Topics"
+    RecordingStudio.enable_capability(:categorisable, on: brief_class)
+    RecordingStudio.set_capability_options(
+      :categorisable,
+      on: brief_class,
+      references: [
+        {
+          attribute_name: :status_category_item_recording_id,
+          selection: :single,
+          category_group_key: "page-status",
+          label: "Status"
+        }
+      ]
     )
-
-    RecordingStudioCategorisable::Capabilities::Reference.enabled(
-      recordable: brief_class,
-      attribute_name: :status_category_item_recording_id,
-      selection: :single,
-      category_group_key: "page-status",
-      label: "Status"
-    )
+    RecordingStudioCategorisable::Capabilities::Categorisable.apply_for(brief_class)
   end
 
   def apply_workspace_category_capabilities
@@ -241,15 +248,13 @@ class ApplicationController < ActionController::Base
         mode: :workspace,
         group: {
           rename: true,
-          reorder: false,
-          move: true,
           update_description: true,
           update_key: false
         },
         item: {
           create: true,
           update_name: true,
-          update_position: true,
+          orderable: true,
           update_key: false,
           delete: true
         }
@@ -263,15 +268,13 @@ class ApplicationController < ActionController::Base
         mode: :admin,
         group: {
           rename: true,
-          reorder: false,
-          move: true,
           update_description: true,
           update_key: true
         },
         item: {
           create: true,
           update_name: true,
-          update_position: true,
+          orderable: true,
           update_key: true,
           delete: true
         }
@@ -290,18 +293,27 @@ class ApplicationController < ActionController::Base
 
       next if capability_defined_for_current_root?(group_key)
 
-      RecordingStudioCategorisable::Capabilities::CategoryGroup.enabled(
-        key: group_key,
-        name: definition.fetch(:name),
-        root_recordable_type: current_root_recording&.recordable_type,
-        allow: capability_sets.fetch(:group)
-      )
+      root_recordable_type = current_root_recording&.recordable_type
 
-      RecordingStudioCategorisable::Capabilities::CategoryItems.enabled(
-        group_key: group_key,
-        root_recordable_type: current_root_recording&.recordable_type,
-        allow: capability_sets.fetch(:item)
+      RecordingStudio.enable_capability(:categorisable, on: root_recordable_type)
+      RecordingStudio.set_capability_options(
+        :categorisable,
+        on: root_recordable_type,
+        category_groups: [
+          {
+            key: group_key,
+            name: definition.fetch(:name),
+            allow: capability_sets.fetch(:group)
+          }
+        ],
+        category_items: [
+          {
+            group_key: group_key,
+            allow: capability_sets.fetch(:item)
+          }
+        ]
       )
+      RecordingStudioCategorisable::Capabilities::Categorisable.apply_for(root_recordable_type)
     end
   end
 
@@ -320,11 +332,11 @@ class ApplicationController < ActionController::Base
         next
       end
 
-      configured = configured_definitions.find { |d| d[:key].to_s == group_def[:key] }
+      configured = configured_definitions.find { |d| d[:group_key].to_s == group_def[:key] }
 
       {
-        key: group_def[:key],
-        name: group_def[:name],
+        group_key: group_def[:key],
+        group_name: group_def[:name],
         items: configured ? Array(configured[:items]) : []
       }
     end

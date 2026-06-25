@@ -55,13 +55,9 @@ RecordingStudioCategorisable::Capabilities::CategoryGroup.enabled(
 
   # OPTIONAL: per-action toggles (all default false)
   # rename              => allow changing group name
-  # reorder             => reserved for ordering behavior
-  # move                => allow changing parent in recording tree
   # update_description  => allow description edits
   allow: {
     rename: true,
-    reorder: false,
-    move: true,
     update_description: true
   }
 
@@ -82,13 +78,13 @@ RecordingStudioCategorisable::Capabilities::CategoryItems.enabled(
   # create             => allow new items
   # update_name        => allow item name edits
   # update_description => allow description edits
-  # update_position    => allow position edits
+  # orderable          => use recording_studio_orderable ordering
   # delete             => allow deletion
   allow: {
     create: true,
     update_name: true,
     update_description: true,
-    update_position: true,
+    orderable: true,
     delete: true
   }
 

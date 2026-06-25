@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 RecordingStudio.configure do |config|
+  # Temporary compatibility for the installed recording_studio_orderable branch,
+  # which registers RecordingStudio::RecordingStudioOrder without declaring
+  # recording_studio_recordable(...).
+  config.require_recordable_declarations = false
+
   # Registered delegated_type recordables (strings or classes)
   config.recordable_types = (
     Array(config.recordable_types) + ["Workspace", "Page", "Brief", "RecordingStudioAdmin::Admin"]

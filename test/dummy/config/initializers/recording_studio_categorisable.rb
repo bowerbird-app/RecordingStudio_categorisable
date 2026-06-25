@@ -1,33 +1,39 @@
 # frozen_string_literal: true
 
+RecordingStudioCategorisable.configure do |config|
+  config.root_recording_resolver = lambda do |controller|
+    ::ApplicationController.instance_method(:current_root_recording).bind_call(controller)
+  end
+end
+
 RecordingStudioCategorisable.category_definitions = [
   {
-    key: "page-status",
-    name: "Page Status",
-    description: "Single-select lifecycle state for pages.",
+    group_key: "page-status",
+    group_name: "Page Status",
+    group_description: "Single-select lifecycle state for pages.",
     items: [
-      { key: "draft", name: "Draft", position: 1 },
-      { key: "published", name: "Published", position: 2 }
+      { key: "draft", name: "Draft" },
+      { key: "published", name: "Published" }
     ]
   },
   {
-    key: "page-topics",
-    name: "Page Topics",
-    description: "Multi-select taxonomy for page content.",
+    group_key: "page-topics",
+    group_name: "Page Topics",
+    group_description: "Multi-select taxonomy for page content.",
     items: [
-      { key: "product", name: "Product", position: 1 },
-      { key: "studio", name: "Studio", position: 2 },
-      { key: "launch", name: "Launch", position: 3 }
+      { key: "product", name: "Product" },
+      { key: "studio", name: "Studio" },
+      { key: "launch", name: "Launch" }
     ]
   },
   {
-    key: "color",
-    name: "Color",
-    description: "Single-select color for pages.",
+    group_key: "color",
+    group_name: "Color",
+    group_description: "Single-select color for pages.",
     items: [
-      { key: "red", name: "Red", position: 1 },
-      { key: "green", name: "Green", position: 2 },
-      { key: "blue", name: "Blue", position: 3 }
+      { key: "red", name: "Red" },
+      { key: "green", name: "Green" },
+      { key: "blue", name: "Blue" }
     ]
   }
 ]

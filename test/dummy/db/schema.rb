@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_24_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_25_063941) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -110,6 +110,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_24_000001) do
     t.uuid "recording_id", null: false
     t.index ["recording_id", "idempotency_key"], name: "index_recording_studio_events_on_recording_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
     t.index ["recording_id"], name: "index_recording_studio_events_on_recording_id"
+  end
+
+  create_table "recording_studio_recording_studio_orders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "group_key", null: false
+    t.string "name"
+    t.uuid "ordered_recording_ids", default: [], null: false, array: true
+    t.uuid "owner_id"
+    t.string "owner_type"
+    t.uuid "parent_recording_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["parent_recording_id", "group_key", "owner_type", "owner_id"], name: "idx_rs_recording_orders_scope_lookup"
+    t.index ["parent_recording_id", "group_key", "owner_type", "owner_id"], name: "idx_rs_recording_orders_unique_default_scope", unique: true, where: "(COALESCE(btrim((name)::text), ''::text) = ''::text)"
+    t.index ["parent_recording_id", "group_key"], name: "idx_on_parent_recording_id_group_key_22deb0cab4"
+    t.index ["parent_recording_id"], name: "idx_on_parent_recording_id_8a5d7bc4a6"
   end
 
   create_table "recording_studio_recordings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
