@@ -1,0 +1,8 @@
+<div class="mx-auto w-full max-w-4xl">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Edit brief",
+    variant: :h1
+  ) %>
+
+  <%= render "form", brief: @brief, submit_text: "Save brief" %>
+</div>

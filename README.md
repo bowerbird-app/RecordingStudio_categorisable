@@ -1,131 +1,225 @@
-# GemTemplate
+# RecordingStudio Categorisable
 
-Internal template for building Rails engine addons on top of RecordingStudio.
+A mountable Rails engine for managing category groups and category items inside the RecordingStudio recording tree.
 
-## What's Included
+This gem provides:
 
-- **RecordingStudio** gem installed and configured
-- **Devise** authentication with a pre-seeded admin user
-- **Workspace** root recording set up following RecordingStudio's Quick Start pattern
-- **FlatPack** UI component library for all views
-- **Dummy app** (`test/dummy/`) with a working login screen and FlatPack default sidebar layout for authenticated pages
+- a mounted management UI for category groups and items
+- root-scoped capability controls for who can edit what
+- model-level category references (single and multiple selection)
+- idempotent category seeding from configuration
+- usage-aware delete guards for safer data changes
 
-## Quick Start
+## What Is New
 
-### GitHub Codespaces (Recommended)
+Recent updates in this gem include:
 
-1. Click **Code** → **Codespaces** → **Create codespace**
-2. Wait for setup to complete
-3. Run:
-   ```bash
-   cd test/dummy
-   bin/rails db:setup
-   bin/dev
-   ```
-4. Open port 3000 — you'll see the login screen
+- renamed legacy `slug` fields to `key` for groups and items
+- root-scoped capability resolution via `root_recordable_type`
+- non-unique DB index for group `key`, with uniqueness enforced per root in app logic
+- update flows that preserve validation errors (re-render instead of losing form state)
+- auto-seeding support for expected groups and supplemental items
 
-The dummy app already includes FlatPack generator output (`flat_pack:install` and default sidebar layout scaffold) so authenticated pages render with the FlatPack sidebar shell by default.
+## Requirements
 
-### Login Credentials
+- Ruby >= 3.3.0
+- Rails ~> 8.1.0
+- recording_studio >= 3.0.0
+- flat_pack >= 0.1.106
 
-| Field    | Value             |
-|----------|-------------------|
-| Email    | admin@admin.com   |
-| Password | Password          |
+## Installation
 
-The login form is prefilled with these credentials for fast access.
+Add the gem to your application and bundle.
 
-## Architecture
+Then run the installer:
 
-### Root Recording Pattern
+```bash
+bin/rails generate recording_studio_categorisable:install
+```
 
-This template follows RecordingStudio's root recording pattern:
+The installer:
 
-- **Workspace** is the top-level recordable
-- A root `RecordingStudio::Recording` wraps the Workspace
-- The admin user has root-level admin access via `RecordingStudio::Access`
-- `Current.actor` is set from `current_user` (Devise) in `ApplicationController`
+- mounts the engine route (default `/recording_studio_categorisable`)
+- adds `config/initializers/recording_studio_categorisable.rb`
+- optionally adds `config/recording_studio_categorisable.yml`
+- attempts to add Tailwind `@source` directives for engine and FlatPack templates
 
-### Extending RecordingStudio
+Run migrations:
 
-To add new recordable types:
+```bash
+bin/rails db:migrate
+```
 
-1. Create your model (e.g., `Page`, `Comment`)
-2. Register it in `config/initializers/recording_studio.rb`:
-   ```ruby
-   RecordingStudio.configure do |config|
-     config.recordable_types = ["Workspace", "YourNewType"]
-   end
-   ```
-3. Leave optional behavior off by default, then opt into capabilities on the specific recordable models that need them:
-   ```ruby
-   class YourNewType < ApplicationRecord
-     include RecordingStudio::Capabilities::Movable.to("Workspace")
-     include RecordingStudio::Capabilities::Copyable.to("Workspace")
-   end
-   ```
-4. If you want per-device root persistence, wire it explicitly in your controller layer:
-   ```ruby
-   class ApplicationController < ActionController::Base
-     include RecordingStudio::Concerns::DeviceSessionConcern
-   end
-   ```
-5. Create recordings under the root:
-   ```ruby
-   root_recording.record(YourNewType) do |record|
-     record.title = "Example"
-   end
-   ```
+## Mount Route
 
-### Capabilities
-
-This template uses the current RecordingStudio approach: built-in capabilities are off by default and are enabled per recordable type by including the relevant module on the model.
-
-- `movable`
-- `copyable`
-
-Device session persistence is separate from capabilities. It is enabled only when you include `RecordingStudio::Concerns::DeviceSessionConcern` in your controller layer.
-
-Enable behavior intentionally where it belongs:
+If you are not using the installer, mount manually:
 
 ```ruby
-class RecordingStudioPage < ApplicationRecord
-  include RecordingStudio::Capabilities::Movable.to("Workspace")
-  include RecordingStudio::Capabilities::Copyable.to("Workspace")
-end
+# config/routes.rb
+mount RecordingStudioCategorisable::Engine, at: "/recording_studio_categorisable"
+```
 
-class ApplicationController < ActionController::Base
-  include RecordingStudio::Concerns::DeviceSessionConcern
+## Basic Configuration
+
+```ruby
+# config/initializers/recording_studio_categorisable.rb
+RecordingStudioCategorisable.configure do |config|
+	config.ui_title = "Categories"
+
+	# Required: resolve the root recording context for the mounted UI.
+	config.root_recording_resolver = ->(controller) { controller.send(:current_root_recording) }
+
+	# Required unless your ApplicationController provides
+	# authorize_recording_studio_categorisable!
+	config.authorization_resolver = ->(controller) { controller.current_user.present? }
+
+	# Optional custom unauthorized handling.
+	# config.unauthorized_response_handler = ->(controller, exception) do
+	#   controller.render plain: exception.message, status: :forbidden
+	# end
 end
 ```
 
-### FlatPack UI Components
+## Capability Model
 
-All views use FlatPack ViewComponents. Available components include:
+The API is split into three capability layers:
 
-- `FlatPack::Button::Component` — Buttons (`:primary`, `:secondary`, `:ghost`)
-- `FlatPack::Card::Component` — Cards (`:default`, `:elevated`, `:outlined`)
-- `FlatPack::Alert::Component` — Alerts (`:success`, `:error`, `:warning`, `:info`)
-- `FlatPack::Badge::Component` — Status badges
-- `FlatPack::Table::Component` — Data tables
-- `FlatPack::TextInput::Component`, `EmailInput`, `PasswordInput` — Form inputs
-- `FlatPack::Breadcrumb::Component` — Navigation breadcrumbs
-- `FlatPack::Navbar::Component` — Navigation sidebar
+1. `CategoryGroup.enabled`: controls group-level behavior (rename, description updates, etc)
+2. `CategoryItems.enabled`: controls item-level behavior (create, update, delete)
+3. `Reference.enabled`: wires model attributes to category groups
 
-See the [FlatPack README](https://github.com/bowerbird-app/flatpack) for full documentation.
+### Root-Scoped Group and Item Capabilities
 
-## Tech Stack
+Use `root_recordable_type` to scope capabilities to a root class:
 
-| Component       | Version |
-|-----------------|---------|
-| Ruby            | 3.3+    |
-| Rails           | 8.1+    |
-| PostgreSQL      | 16      |
-| TailwindCSS     | 4       |
-| RecordingStudio | v0.1.0-alpha (pinned in `test/dummy/Gemfile`) |
-| FlatPack        | v0.1.33 (pinned in `test/dummy/Gemfile`) |
-| Devise          | latest  |
+```ruby
+RecordingStudioCategorisable::Capabilities::CategoryGroup.enabled(
+	key: "page-status",
+	name: "Page Status",
+	root_recordable_type: "Workspace",
+	allow: {
+		rename: true,
+		update_description: true,
+		update_key: false
+	}
+)
 
-## Documentation
+RecordingStudioCategorisable::Capabilities::CategoryItems.enabled(
+	group_key: "page-status",
+	root_recordable_type: "Workspace",
+	allow: {
+		create: true,
+		update_name: true,
+		update_description: true,
+		orderable: true,
+		update_key: false,
+		delete: true
+	}
+)
+```
 
-The original gem template documentation is preserved in `docs/gem_template/` as architectural reference material. Use it as background on the engine conventions; the README and dummy app are the source of truth for the Recording Studio addon workflow.
+Notes:
+
+- if `root_recordable_type` is omitted, capability acts as global fallback
+- group/item capabilities are not model-field declarations; they are policy/config
+
+### Per-Model References
+
+References are registered per recordable class. They are not inherited from a root model.
+
+```ruby
+class Page < ApplicationRecord
+	recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
+
+	RecordingStudioCategorisable::Capabilities::Reference.enabled(
+		recordable: self,
+		attribute_name: :status_category_item_recording_id,
+		selection: :single,
+		category_group_key: "page-status",
+		label: "Status"
+	)
+
+	RecordingStudioCategorisable::Capabilities::Reference.enabled(
+		recordable: self,
+		attribute_name: :topic_category_item_recording_ids,
+		selection: :multiple,
+		category_group_key: "page-topics",
+		label: "Topics"
+	)
+end
+```
+
+If another child model (for example `Brief`) also needs category references, register references for that model too.
+
+## Defining Category Seeds
+
+You can define default groups/items through `category_definitions`:
+
+```ruby
+RecordingStudioCategorisable.configure do |config|
+	config.category_definitions = [
+		{
+			group_key: "page-status",
+			group_name: "Page Status",
+			group_description: "Single-select lifecycle state.",
+			items: [
+				{ key: "draft", name: "Draft" },
+				{ key: "published", name: "Published" }
+			]
+		},
+		{
+			group_key: "page-topics",
+			group_name: "Page Topics",
+			group_description: "Multi-select taxonomy for page content.",
+			items: [
+				{ key: "product", name: "Product" },
+				{ key: "studio", name: "Studio" }
+			]
+		}
+	]
+end
+```
+
+Seeding is idempotent and skips keys that already exist (including tombstones).
+
+## Safety Behaviors
+
+The mounted UI includes guardrails:
+
+- deletion blocking when a category item/group is still in use
+- protection against cyclic group moves
+- scoped capability checks based on the current root recording type
+- validation-first updates that re-render forms with errors
+
+## Using Hooks
+
+The gem exposes lifecycle and extension hooks:
+
+- `before_initialize`
+- `on_configuration`
+- `after_initialize`
+- `before_service`, `after_service`, `around_service`
+- `extend_model`
+- `extend_controller`
+
+Example:
+
+```ruby
+RecordingStudioCategorisable.configure do |config|
+	config.hooks.after_initialize do
+		Rails.logger.info("RecordingStudioCategorisable initialized")
+	end
+end
+```
+
+## Running Tests In This Repository
+
+From the repository root:
+
+```bash
+bundle exec rake test
+```
+
+## License
+
+Released under the MIT License.

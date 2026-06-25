@@ -1,0 +1,48 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Install",
+    subtitle: "Host app installation steps for the categorisable engine.",
+    variant: :h1
+  ) %>
+
+  <div class="space-y-6 text-sm leading-6 text-(--surface-content-color)">
+    <div class="space-y-2">
+      <h2 class="text-base font-semibold">1. Add the gem</h2>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code># Gemfile
+gem "recording_studio_categorisable"</code></pre>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>bundle install</code></pre>
+    </div>
+
+    <div class="space-y-2">
+      <h2 class="text-base font-semibold">2. Run the install generator</h2>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>bin/rails generate recording_studio_categorisable:install</code></pre>
+      <p>This mounts the engine route, creates an initializer, optionally adds a YAML config file, and updates Tailwind source scanning when detected.</p>
+    </div>
+
+    <div class="space-y-2">
+      <h2 class="text-base font-semibold">3. Copy engine migrations into your app</h2>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>bin/rails generate recording_studio_categorisable:migrations</code></pre>
+    </div>
+
+    <div class="space-y-2">
+      <h2 class="text-base font-semibold">4. Apply migrations</h2>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>bin/rails db:migrate</code></pre>
+    </div>
+
+    <div class="space-y-2">
+      <h2 class="text-base font-semibold">5. Rebuild Tailwind CSS (if your app uses Tailwind)</h2>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>bin/rails tailwindcss:build</code></pre>
+    </div>
+
+    <div class="space-y-2">
+      <h2 class="text-base font-semibold">6. Open the mounted UI</h2>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>/recording_studio_categorisable</code></pre>
+    </div>
+
+    <div class="space-y-2">
+      <h2 class="text-base font-semibold">Next</h2>
+      <p>Continue to the configuration guide for root resolver, authorization, and category capability setup.</p>
+      <p><%= link_to "Go to Configuration", "/config", class: "text-(--primary-content-color) underline" %></p>
+    </div>
+  </div>
+</div>

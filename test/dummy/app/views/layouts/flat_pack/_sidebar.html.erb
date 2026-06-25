@@ -2,7 +2,7 @@
   <% sidebar.header do %>
     <%= render FlatPack::Sidebar::Header::Component.new(
       brand_abbr: "RS",
-      title: "Addon Template",
+      title: "Categorisable",
       subtitle: "Recording Studio"
     ) %>
   <% end %>
@@ -16,9 +16,39 @@
       ) %>
 
       <%= render FlatPack::Sidebar::Item::Component.new(
-        label: "Recording Studio",
-        href: "/recording_studio",
-        icon: :folder
+        label: "Install",
+        href: "/install",
+        icon: :arrow_down_tray
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Config",
+        href: "/config",
+        icon: :cog_6_tooth
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Methods",
+        href: "/methods",
+        icon: :code_bracket
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Components",
+        href: "/components",
+        icon: :rectangle_group
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Recording Tree",
+        href: "/recording-tree",
+        icon: :share
+      ) %>
+
+      <%= render FlatPack::Sidebar::Item::Component.new(
+        label: "Categories",
+        href: "/recording_studio_categorisable",
+        icon: :tag
       ) %>
 
       <%= render FlatPack::Sidebar::Item::Component.new(
@@ -34,7 +64,7 @@
     <%= render FlatPack::Sidebar::Footer::Component.new(class: "text-sm text-[var(--surface-muted-content-color)]") do %>
       <%= render FlatPack::Sidebar::Item::Component.new(
         label: "Sign out",
-        href: destroy_user_session_path,
+        href: main_app.destroy_user_session_path,
         icon: :lock,
         class: "mx-0",
         data: { turbo_method: :delete }

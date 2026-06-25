@@ -1,0 +1,79 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Methods",
+    subtitle: "Common categorisable APIs you can call from models, forms, and controllers.",
+    variant: :h1
+  ) %>
+
+  <div class="space-y-8 text-sm leading-6 text-(--surface-content-color)">
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">recording_studio_category_fields</h2>
+      <p class="text-(--surface-muted-content-color)">Inspect the categorisable fields declared on the model class.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>Page.recording_studio_category_fields.map(&:attribute_name)
+# =&gt; [:status_category_item_recording_id, :topic_category_item_recording_ids]</code></pre>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">Page.status_category_item_recording_id</h2>
+      <p class="text-(--surface-muted-content-color)">The categorises declaration defines a class-level accessor that returns the field object, so you can ask it whether it is single or multiple.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>Page.status_category_item_recording_id.single?
+    # =&gt; true
+
+    Page.topic_category_item_recording_ids.multiple?
+    # =&gt; true</code></pre>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">Page.available_category_groups</h2>
+      <p class="text-(--surface-muted-content-color)">Return the category group recordables declared for the model.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>Page.available_category_groups
+    # =&gt; [#&lt;RecordingStudioCategorisable::CategoryGroup key: "page-status"&gt;,
+    #     #&lt;RecordingStudioCategorisable::CategoryGroup key: "page-topics"&gt;]</code></pre>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">page.assigned_category_items</h2>
+      <p class="text-(--surface-muted-content-color)">Return the category item recordables selected by a page, optionally filtered by category group key.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>page.assigned_category_items
+# =&gt; [#&lt;RecordingStudioCategorisable::CategoryItem key: "published"&gt;,
+#     #&lt;RecordingStudioCategorisable::CategoryItem key: "product"&gt;]
+
+page.assigned_category_items(category_group: "page-topics")
+# =&gt; [#&lt;RecordingStudioCategorisable::CategoryItem key: "product"&gt;,
+#     #&lt;RecordingStudioCategorisable::CategoryItem key: "studio"&gt;]</code></pre>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold">RecordingStudioCategorisable::CategoryAssignmentGuard</h2>
+      <p class="text-(--surface-muted-content-color)">Shared fail-closed checks for category assignment inputs. Use these checks in controllers or services to enforce required reference mappings and reject unexpected category params before writing data.</p>
+      <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code># 1) Ensure required model references are present and mapped correctly
+RecordingStudioCategorisable::CategoryAssignmentGuard.ensure_required_references!(
+  fields: category_fields,
+  required_references: {
+    status_category_item_recording_id: "page-status",
+    topic_category_item_recording_ids: "page-topics"
+  }
+)
+
+# 2) Reject unexpected category params submitted by clients
+RecordingStudioCategorisable::CategoryAssignmentGuard.reject_unexpected_attributes!(
+  submitted_params: params.fetch(:page, ActionController::Parameters.new),
+  fields: category_fields
+)
+
+# Typical flow (controller/service)
+def validate_category_payload!(category_fields:, payload:, required_references:)
+  RecordingStudioCategorisable::CategoryAssignmentGuard.ensure_required_references!(
+    fields: category_fields,
+    required_references: required_references
+  )
+
+  RecordingStudioCategorisable::CategoryAssignmentGuard.reject_unexpected_attributes!(
+    submitted_params: payload,
+    fields: category_fields
+  )
+end</code></pre>
+    </section>
+
+  </div>
+</div>

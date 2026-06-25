@@ -1,0 +1,31 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Components",
+    subtitle: "Helper-first examples using category key + input mode.",
+    variant: :h1
+  ) %>
+
+  <div class="space-y-6 text-sm leading-6 text-(--surface-content-color)">
+    <p>Use the helper to render a categorisable input by passing only the category key and input mode.</p>
+    <p>Supported modes are <code>:select</code> (current setup) and <code>:radio</code> (temporary fallback until a FlatPack radio component exists).</p>
+
+    <pre class="overflow-auto rounded-md bg-(--surface-muted-background-color) p-4 text-xs"><code>&lt;%= render_categorisable_input(category_key: "page-status", as: :select) %&gt;
+&lt;%= render_categorisable_input(category_key: "page-status", as: :radio) %&gt;
+&lt;%= render_categorisable_input(category_key: "page-topics", as: :select) %&gt;</code></pre>
+
+    <div class="space-y-3">
+      <h2 class="text-base font-semibold">Select input (single)</h2>
+      <%= render_categorisable_input(category_key: "page-status", as: :select) %>
+    </div>
+
+    <div class="space-y-3">
+      <h2 class="text-base font-semibold">Select input (multiple)</h2>
+      <%= render_categorisable_input(category_key: "page-topics", as: :select) %>
+    </div>
+
+    <div class="space-y-3">
+      <h2 class="text-base font-semibold">Radio input (single fallback)</h2>
+      <%= render_categorisable_input(category_key: "page-status", as: :radio) %>
+    </div>
+  </div>
+</div>

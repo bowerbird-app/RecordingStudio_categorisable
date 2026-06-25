@@ -1,0 +1,10 @@
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
+  <%= render FlatPack::PageNav::Component.new(anchor_url: main_app.root_path) %>
+
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Edit category group",
+    variant: :h1
+  ) %>
+
+  <%= render "form", category_group: @category_group, submit_text: "Save", editable_fields: @editable_fields %>
+</div>

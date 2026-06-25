@@ -20,12 +20,16 @@ Layout/LineLength:
 Metrics/ClassLength:
   Exclude:
     - 'test/**/*'
-    - 'lib/gem_template/hooks.rb'
+    - 'lib/recording_studio_categorisable/hooks.rb'
 
 Metrics/MethodLength:
   Exclude:
     - 'test/**/*'
     - 'lib/generators/**/*'
+
+Metrics/BlockLength:
+  Exclude:
+    - 'app/models/concerns/recording_studio_categorisable/categorisable.rb'
 
 Metrics/AbcSize:
   Exclude:
@@ -50,5 +54,5 @@ Naming/VariableNumber:
 # Don't require super in service initialize methods
 Lint/MissingSuper:
   Exclude:
-    - 'lib/gem_template/services/**/*'
+    - 'lib/recording_studio_categorisable/services/**/*'
     - 'test/services/**/*'

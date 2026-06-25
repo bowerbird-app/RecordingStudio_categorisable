@@ -1,0 +1,9 @@
+<div class="mx-auto w-full max-w-4xl">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "New page",
+    subtitle: "Create a page recordable and assign category item recordings.",
+    variant: :h1
+  ) %>
+
+  <%= render "form", page: @page, submit_text: "Create page" %>
+</div>

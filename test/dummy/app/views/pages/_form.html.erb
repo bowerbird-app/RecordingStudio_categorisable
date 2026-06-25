@@ -1,0 +1,32 @@
+<%= form_with model: page, url: @page_recording ? page_path(@page_recording) : pages_path do |form| %>
+  <% if page.errors[:base].present? %>
+    <div class="mb-4 text-sm text-warning"><%= page.errors[:base].first %></div>
+  <% end %>
+
+  <div class="space-y-4">
+    <%= render FlatPack::TextInput::Component.new(
+      name: "page[title]",
+      label: "Title",
+      value: page.title,
+      error: page.errors[:title].first,
+      required: true
+    ) %>
+
+    <%= render FlatPack::TextArea::Component.new(
+      name: "page[body]",
+      label: "Body",
+      value: page.body,
+      rows: 6
+    ) %>
+
+    <% @category_fields.each do |field_state| %>
+      <% field = field_state.fetch(:field) %>
+      <%= render_categorisable_input(category_key: field.category_group_key, as: :select) %>
+    <% end %>
+  </div>
+
+  <div class="mt-6 flex flex-wrap gap-3">
+    <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: root_path) %>
+  </div>
+<% end %>

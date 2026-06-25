@@ -1,0 +1,8 @@
+<div class="mx-auto w-full max-w-4xl">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Edit page",
+    variant: :h1
+  ) %>
+
+  <%= render "form", page: @page, submit_text: "Save page" %>
+</div>

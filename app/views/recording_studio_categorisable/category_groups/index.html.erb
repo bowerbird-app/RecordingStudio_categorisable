@@ -1,0 +1,68 @@
+<div class="flex w-full flex-col gap-6">
+  <%= render FlatPack::PageNav::Component.new(anchor_url: main_app.root_path) %>
+
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "Category Groups",
+    variant: :h1
+  ) %>
+
+  <% name_cell = lambda do |category_group_recording|
+       category_group = category_group_recording.recordable
+
+       capture do %>
+         <div class="space-y-1">
+           <div class="font-medium"><%= category_group.name %></div>
+           <div class="text-xs text-(--surface-muted-content-color)"><%= category_group.description.presence || "No description" %></div>
+         </div>
+       <% end
+     end %>
+
+  <% key_cell = lambda do |category_group_recording|
+      category_group_recording.recordable.key
+     end %>
+
+  <% location_cell = lambda do |category_group_recording|
+       category_group_recording.parent_recording&.recordable&.try(:name) ||
+         category_group_recording.parent_recording&.recordable&.try(:title) ||
+         "Root"
+     end %>
+
+  <% items_cell = lambda do |category_group_recording|
+      @item_counts_by_group_id.fetch(category_group_recording.id, 0)
+     end %>
+
+  <% usage_cell = lambda do |category_group_recording|
+       usage_count = @usage_report.group_usage_count(category_group_recording)
+       "#{usage_count} uses"
+     end %>
+
+  <% actions_cell = lambda do |category_group_recording|
+       capture do %>
+         <div class="flex flex-wrap gap-2">
+           <%= render FlatPack::Button::Component.new(
+             text: "View",
+             style: :secondary,
+             size: :sm,
+             url: category_group_path(category_group_recording)
+           ) %>
+           <% if @editable_group_keys.include?(category_group_recording.recordable.key) %>
+             <%= render FlatPack::Button::Component.new(
+               text: "Edit",
+              style: :secondary,
+               size: :sm,
+               url: edit_category_group_path(category_group_recording)
+             ) %>
+           <% end %>
+         </div>
+       <% end
+     end %>
+
+  <%= render FlatPack::Table::Component.new(data: @category_group_recordings) do |table| %>
+    <% table.column(title: "Name", html: name_cell) %>
+    <% table.column(title: "Key", html: key_cell) %>
+    <% table.column(title: "Location", html: location_cell) %>
+    <% table.column(title: "Items", html: items_cell) %>
+    <% table.column(title: "Usage", html: usage_cell) %>
+    <% table.column(title: "Actions", html: actions_cell) %>
+  <% end %>
+</div>

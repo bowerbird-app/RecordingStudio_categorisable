@@ -1,0 +1,38 @@
+<% editable_fields = local_assigns.fetch(:editable_fields, { name: true, description: true }) %>
+<% editable_field_count = editable_fields.values.count(true) %>
+
+<%= form_with model: category_item, url: @category_item_recording ? category_group_category_item_path(@category_group_recording, @category_item_recording) : category_group_category_items_path(@category_group_recording) do |form| %>
+  <% if @category_item_recording.present? && editable_field_count.zero? %>
+    <div class="mb-4 text-sm text-(--surface-muted-content-color)">
+      This category item is read-only in the current scope. No editable fields are allowed.
+    </div>
+  <% end %>
+
+  <div class="space-y-4">
+    <% if editable_fields[:name] %>
+      <%= render FlatPack::TextInput::Component.new(
+        name: "category_item[name]",
+        label: "Name",
+        value: category_item.name,
+        error: category_item.errors[:name].first,
+        required: true
+      ) %>
+    <% end %>
+
+    <% if editable_fields[:description] %>
+      <%= render FlatPack::TextArea::Component.new(
+        name: "category_item[description]",
+        label: "Description",
+        value: category_item.description,
+        rows: 4
+      ) %>
+    <% end %>
+
+  </div>
+
+  <div class="mt-6 flex flex-wrap gap-3">
+    <% if @category_item_recording.blank? || editable_field_count.positive? %>
+      <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
+    <% end %>
+  </div>
+<% end %>

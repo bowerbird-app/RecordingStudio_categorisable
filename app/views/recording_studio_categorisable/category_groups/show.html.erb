@@ -1,0 +1,155 @@
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
+  <% category_group = @category_group_recording.recordable %>
+
+  <%= render FlatPack::PageNav::Component.new(anchor_url: main_app.root_path) %>
+
+  <%= render FlatPack::PageTitle::Component.new(
+    title: category_group.name,
+    subtitle: category_group.description.presence,
+    variant: :h1
+  ) %>
+
+  <div class="flex flex-wrap gap-2">
+    <% if @can_create_items && !@reorder_mode %>
+      <%= render FlatPack::Button::Component.new(
+        text: "Add item",
+        style: :primary,
+        size: :sm,
+        url: new_category_group_category_item_path(@category_group_recording)
+      ) %>
+    <% end %>
+    <% if @can_edit_group && !@reorder_mode %>
+      <%= render FlatPack::Button::Component.new(
+        text: "Edit group",
+        style: :secondary,
+        size: :sm,
+        url: edit_category_group_path(@category_group_recording)
+      ) %>
+    <% end %>
+    <% if @orderable_items %>
+      <% if @reorder_mode %>
+        <%= render FlatPack::Button::Component.new(
+          text: "Done",
+          style: :secondary,
+          size: :sm,
+          url: category_group_path(@category_group_recording)
+        ) %>
+      <% else %>
+        <%= render FlatPack::Button::Component.new(
+          text: "Reorder",
+          style: :secondary,
+          size: :sm,
+          url: category_group_path(@category_group_recording, reorder: true)
+        ) %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% item_name_cell = lambda do |category_item_recording|
+       category_item = category_item_recording.recordable
+
+       capture do %>
+         <div class="space-y-1">
+           <div class="font-medium"><%= category_item.name %></div>
+           <div class="text-xs text-(--surface-muted-content-color)"><%= category_item.description.presence || "No description" %></div>
+         </div>
+       <% end
+     end %>
+
+  <% item_key_cell = lambda do |category_item_recording|
+       category_item_recording.recordable.key
+     end %>
+
+  <% item_usage_cell = lambda do |category_item_recording|
+       item_usage_count = @usage_report.item_usage_count(category_item_recording)
+
+      item_usage_count
+     end %>
+
+  <% item_actions_cell = lambda do |category_item_recording|
+       item_usage_count = @usage_report.item_usage_count(category_item_recording)
+       delete_form_id = "delete-category-item-#{category_item_recording.id}"
+
+       capture do %>
+         <% if @can_edit_items || @can_delete_items %>
+           <% if @can_delete_items && item_usage_count.zero? %>
+             <%= form_with(
+               url: category_group_category_item_path(@category_group_recording, category_item_recording),
+               method: :delete,
+               id: delete_form_id,
+               class: "hidden",
+               data: { turbo_confirm: "Delete this category item?" }
+             ) do %>
+             <% end %>
+           <% end %>
+
+           <%= render FlatPack::Button::Dropdown::Component.new(
+             text: "",
+             icon: "dots",
+             style: :secondary,
+             size: :sm,
+             show_chevron: false,
+             trigger_attributes: {
+               aria: { label: "Item actions" }
+             }
+           ) do |dropdown| %>
+             <% if @can_edit_items %>
+               <% dropdown.menu_item(
+                 text: "Edit",
+                 href: edit_category_group_category_item_path(@category_group_recording, category_item_recording)
+               ) %>
+             <% end %>
+
+             <% if @can_delete_items %>
+               <% if item_usage_count.zero? %>
+                 <% dropdown.menu_item(
+                   text: "Delete",
+                    class: "text-danger-text-color",
+                   type: "submit",
+                   form: delete_form_id
+                 ) %>
+               <% else %>
+                 <% dropdown.menu_item(
+                   text: "Delete (in use)",
+                   destructive: true,
+                   title: "Delete is disabled because category is in use",
+                   type: "button",
+                   aria: {
+                     disabled: true,
+                     label: "Delete is disabled because category is in use"
+                   },
+                   class: "opacity-50 cursor-not-allowed pointer-events-auto"
+                 ) %>
+               <% end %>
+             <% end %>
+           <% end %>
+         <% end %>
+       <% end
+     end %>
+
+  <% if @reorder_mode %>
+    <div data-controller="category-items-reorder" data-category-items-reorder-url-value="<%= reorder_items_category_group_path(@category_group_recording) %>">
+      <%= render FlatPack::Table::Component.new(
+        data: @category_item_recordings,
+        draggable_rows: true,
+        row_id: ->(recording) { recording.id }
+      ) do |table| %>
+        <% table.column(title: "", html: ->(_row) {
+             content_tag(:span, "::::", aria: { hidden: true }, class: "inline-flex cursor-grab text-(--surface-muted-content-color)")
+           }) %>
+        <% table.column(title: "Name", html: item_name_cell) %>
+        <% table.column(title: "Key", html: item_key_cell) %>
+        <% table.column(title: "Usage", html: item_usage_cell) %>
+      <% end %>
+
+      <div class="mt-2 text-xs text-(--surface-muted-content-color)" data-category-items-reorder-target="status"></div>
+    </div>
+  <% else %>
+    <%= render FlatPack::Table::Component.new(data: @category_item_recordings) do |table| %>
+      <% table.column(title: "Name", html: item_name_cell) %>
+      <% table.column(title: "Key", html: item_key_cell) %>
+      <% table.column(title: "Usage", html: item_usage_cell) %>
+      <% table.column(title: "Actions", html: item_actions_cell) %>
+    <% end %>
+  <% end %>
+</div>

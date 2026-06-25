@@ -1,0 +1,9 @@
+<div class="mx-auto w-full max-w-4xl">
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "New brief",
+    subtitle: "Create a brief recordable with a single-select category field.",
+    variant: :h1
+  ) %>
+
+  <%= render "form", brief: @brief, submit_text: "Create brief" %>
+</div>
