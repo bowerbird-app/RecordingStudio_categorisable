@@ -94,11 +94,17 @@ module RecordingStudioCategorisable
       RecordingStudioCategorisable::Hooks.run(:after_initialize, self)
     end
 
+    initializer "recording_studio_categorisable.register_categorisable_capability",
+                after: "recording_studio_categorisable.after_initialize" do
+      config.to_prepare do
+        RecordingStudioCategorisable::Capabilities::Categorisable.register_capability!
+        RecordingStudioCategorisable::Capabilities::Categorisable.sync_all_enabled!
+      end
+    end
+
     initializer "recording_studio_categorisable.seed_categories_from_config",
                 after: "recording_studio_categorisable.register_recordable_types" do
       config.to_prepare do
-        next unless defined?(RecordingStudio)
-
         next unless ActiveRecord::Base.connection.table_exists?(:recording_studio_recordings)
 
         root_recordings = RecordingStudio::Recording.where(parent_recording_id: nil)
@@ -121,8 +127,6 @@ module RecordingStudioCategorisable
     initializer "recording_studio_categorisable.register_recordable_types",
                 after: "recording_studio_categorisable.after_initialize" do
       config.to_prepare do
-        next unless defined?(RecordingStudio)
-
         category_group_parent_types = RecordingStudio.configuration.recordable_types + [
           "RecordingStudioCategorisable::CategoryGroup"
         ]
@@ -147,8 +151,6 @@ module RecordingStudioCategorisable
     # Apply model extensions when models are loaded
     initializer "recording_studio_categorisable.apply_model_extensions" do
       config.to_prepare do
-        next unless defined?(ActiveRecord::Base)
-
         ActiveRecord::Base.descendants.each do |model|
           next if model.abstract_class?
 
@@ -160,8 +162,6 @@ module RecordingStudioCategorisable
     # Apply controller extensions
     initializer "recording_studio_categorisable.apply_controller_extensions" do
       config.to_prepare do
-        next unless defined?(ActionController::Base)
-
         ActionController::Base.descendants.each do |controller|
           RecordingStudioCategorisable::Engine.apply_controller_extensions(controller)
         end
@@ -171,7 +171,6 @@ module RecordingStudioCategorisable
     initializer "recording_studio_categorisable.seed_dummy_data",
                 after: "recording_studio_categorisable.seed_categories_from_config" do
       config.to_prepare do
-        next unless defined?(RecordingStudio)
         next if Rails.env.test?
         next unless ActiveRecord::Base.connection.table_exists?(:recording_studio_recordings)
 
@@ -186,17 +185,13 @@ module RecordingStudioCategorisable
         )
 
         # Create admin root
-        admin_root = nil
-        admin_root_recording = nil
-        if defined?(RecordingStudioAdmin::Admin)
-          admin_root = RecordingStudioAdmin::Admin.find_or_create_by!(key: "admin") do |a|
-            a.name = "Admin"
-          end
-          admin_root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
-            recordable: admin_root,
-            parent_recording_id: nil
-          )
+        admin_root = RecordingStudioAdmin::Admin.find_or_create_by!(key: "admin") do |a|
+          a.name = "Admin"
         end
+        RecordingStudio::Recording.unscoped.find_or_create_by!(
+          recordable: admin_root,
+          parent_recording_id: nil
+        )
 
         # Create sample page under workspace root
         status_group = workspace_root.recordings_query(
@@ -248,7 +243,7 @@ module RecordingStudioCategorisable
         admin_user = User.find_by(email: "admin@admin.com")
         viewer_user = User.find_by(email: "viewer@admin.com")
 
-        if admin_user && defined?(RecordingStudioAccessible) && !workspace_root.child_recordings.where(recordable_type: "RecordingStudio::Access").exists?
+        if admin_user && !workspace_root.child_recordings.where(recordable_type: "RecordingStudio::Access").exists?
           begin
             RecordingStudioAccessible::AccessCreationContext.allow do
               workspace_root.record(RecordingStudio::Access, parent_recording: workspace_root) do |a|

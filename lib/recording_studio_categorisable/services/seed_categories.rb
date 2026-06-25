@@ -13,12 +13,12 @@ module RecordingStudioCategorisable
     #     root_recording: root_recording,
     #     category_definitions: [
     #       {
-    #         key: "page-status",
-    #         name: "Page Status",
-    #         description: "Single-select lifecycle state.",
+    #         group_key: "page-status",
+    #         group_name: "Page Status",
+    #         group_description: "Single-select lifecycle state.",
     #         items: [
-    #           { key: "draft", name: "Draft", position: 1 },
-    #           { key: "published", name: "Published", position: 2 }
+    #           { key: "draft", name: "Draft" },
+    #           { key: "published", name: "Published" }
     #         ]
     #       }
     #     ]
@@ -39,7 +39,7 @@ module RecordingStudioCategorisable
 
         @root_recording.with_lock do
           @category_definitions.each do |definition|
-            existing_group = find_group_by_key(definition[:key].to_s)
+            existing_group = find_group_by_key(definition[:group_key].to_s)
             group_result = existing_group || ensure_category_group(definition)
             created << group_result if group_result && existing_group.blank?
 
@@ -56,8 +56,8 @@ module RecordingStudioCategorisable
       end
 
       def ensure_category_group(definition)
-        key = definition[:key].to_s
-        name = definition[:name].to_s
+        key = definition[:group_key].to_s
+        name = definition[:group_name].to_s
         return nil if key.empty? || name.empty?
 
         existing = find_group_by_key(key)
@@ -66,17 +66,21 @@ module RecordingStudioCategorisable
         @root_recording.record(RecordingStudioCategorisable::CategoryGroup) do |group|
           group.key = key
           group.name = name
-          group.description = definition[:description].presence
+          group.description = definition[:group_description].presence
         end
-      rescue ::ActiveRecord::RecordInvalid => e
-        # Another root can attempt the same key in the same boot cycle.
-        # Treat duplicate key as already-seeded to keep seeding idempotent.
-        return nil if duplicate_group_key_error?(e)
+      rescue StandardError => e
+        if record_invalid_error?(e)
+          # Another root can attempt the same key in the same boot cycle.
+          # Treat duplicate key as already-seeded to keep seeding idempotent.
+          return nil if duplicate_group_key_error?(e)
+
+          raise
+        end
+
+        # During boot/migration transitions, treat duplicate-key races as seeded.
+        return nil if record_not_unique_error?(e)
 
         raise
-      rescue ::ActiveRecord::RecordNotUnique
-        # During boot/migration transitions, treat duplicate-key races as seeded.
-        nil
       end
 
       def ensure_category_item(group_recording, item_definition)
@@ -90,7 +94,6 @@ module RecordingStudioCategorisable
         @root_recording.record(RecordingStudioCategorisable::CategoryItem, parent_recording: group_recording) do |item|
           item.key = key
           item.name = name
-          item.position = item_definition[:position] || 0
           item.description = item_definition[:description].presence
         end
       end
@@ -115,6 +118,14 @@ module RecordingStudioCategorisable
         return false unless record.is_a?(RecordingStudioCategorisable::CategoryGroup)
 
         record.errors.of_kind?(:key, :taken)
+      end
+
+      def record_invalid_error?(error)
+        error.class.name == "ActiveRecord::RecordInvalid"
+      end
+
+      def record_not_unique_error?(error)
+        error.class.name == "ActiveRecord::RecordNotUnique"
       end
     end
   end

@@ -37,8 +37,6 @@ module RecordingStudioCategorisable
     end
 
     def current_recordings
-      return RecordingStudio::Recording.none unless defined?(RecordingStudio::Recording)
-
       RecordingStudio::Recording.of_type(recordable_type_name)
     end
 

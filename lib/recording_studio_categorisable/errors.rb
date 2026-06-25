@@ -11,5 +11,7 @@ module RecordingStudioCategorisable
 
   class MissingAuthorizationError < Error; end
 
+  class MissingOrderableDependencyError < Error; end
+
   class UnauthorizedError < Error; end
 end

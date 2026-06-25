@@ -96,9 +96,9 @@ class ConfigurationTest < Minitest::Test
 
   def test_category_definitions_for_filters_to_enabled_groups_for_root_type
     @configuration.category_definitions = [
-      { key: "page-status", name: "Page Status" },
-      { key: "color", name: "Color" },
-      { key: "orphaned", name: "Orphaned" }
+      { group_key: "page-status", group_name: "Page Status" },
+      { group_key: "color", group_name: "Color" },
+      { group_key: "orphaned", group_name: "Orphaned" }
     ]
     @configuration.enable_category_group(
       key: "page-status",
@@ -113,6 +113,28 @@ class ConfigurationTest < Minitest::Test
 
     definitions = @configuration.category_definitions_for(root_recordable_type: "Workspace")
 
-    assert_equal ["page-status"], definitions.map { |definition| definition[:key] }
+    assert_equal(["page-status"], definitions.map { |definition| definition[:group_key] })
+  end
+
+  def test_enable_category_items_with_orderable_flag_registers_ordering_support
+    calls = []
+    original_method = RecordingStudioCategorisable::OrderableSupport.method(:ensure_category_group_ordering!)
+
+    RecordingStudioCategorisable::OrderableSupport.singleton_class.send(
+      :define_method,
+      :ensure_category_group_ordering!
+    ) do |group_key|
+      calls << group_key
+    end
+
+    @configuration.enable_category_items(group_key: "page-status", allow: { orderable: true })
+
+    assert_equal ["page-status"], calls
+  ensure
+    RecordingStudioCategorisable::OrderableSupport.singleton_class.send(
+      :define_method,
+      :ensure_category_group_ordering!,
+      original_method
+    )
   end
 end

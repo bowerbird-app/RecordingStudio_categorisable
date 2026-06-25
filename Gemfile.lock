@@ -7,6 +7,25 @@ GIT
       rails (>= 8.1.0)
 
 GIT
+  remote: https://github.com/bowerbird-app/RecordingStudio_accessible.git
+  revision: e8013c77726edd5f4f82ad05805e8a76b8910632
+  tag: 0.3.2
+  specs:
+    recording_studio_accessible (0.3.2)
+      rails (~> 8.1.0)
+      recording_studio (~> 3.0)
+
+GIT
+  remote: https://github.com/bowerbird-app/RecordingStudio_orderable.git
+  revision: fce23f728277756e52f84d3761e4e68fe2d54509
+  branch: copilot/create-recordingstudio-orderable
+  specs:
+    recording_studio_orderable (0.1.0)
+      rails (~> 8.1.0)
+      recording_studio (>= 0.1.0)
+      recording_studio_accessible (>= 0.1.0)
+
+GIT
   remote: https://github.com/bowerbird-app/flatpack.git
   revision: b3f844aba83a84b6c9e999bda38136813045f341
   tag: v0.1.106
@@ -305,7 +324,9 @@ DEPENDENCIES
   flat_pack!
   puma
   recording_studio!
+  recording_studio_accessible!
   recording_studio_categorisable!
+  recording_studio_orderable!
   rubocop
   rubocop-rails
   simplecov
@@ -385,7 +406,9 @@ CHECKSUMS
   rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
   rdoc (6.16.1) sha256=71357cc208e6da77ba0c4494e01ae870dd18b437c7c7d801dd73ee2f340b9f5c
   recording_studio (3.0.0)
+  recording_studio_accessible (0.3.2)
   recording_studio_categorisable (0.2.0)
+  recording_studio_orderable (0.1.0)
   regexp_parser (2.11.3) sha256=ca13f381a173b7a93450e53459075c9b76a10433caadcb2f1180f2c741fc55a4
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
   rubocop (1.81.7) sha256=6fb5cc298c731691e2a414fe0041a13eb1beed7bab23aec131da1bcc527af094

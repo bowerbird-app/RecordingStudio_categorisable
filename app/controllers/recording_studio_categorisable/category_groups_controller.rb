@@ -2,7 +2,7 @@
 
 module RecordingStudioCategorisable
   class CategoryGroupsController < ApplicationController
-    before_action :set_category_group_recording, only: %i[show edit update destroy]
+    before_action :set_category_group_recording, only: %i[show edit update destroy reorder_items]
     before_action :set_usage_report, only: %i[index show destroy]
 
     def index
@@ -27,18 +27,53 @@ module RecordingStudioCategorisable
     end
 
     def show
-      @category_item_recordings = active_recordings_scope(
-        @category_group_recording.child_recordings.of_type(CategoryItem)
-      ).includes(:recordable)
-                                  .sort_by do |recording|
-        [recording.recordable.position || 0,
-         recording.recordable.name.to_s.downcase]
-      end
       @category_item_capability = category_item_capability_for(@category_group_recording.recordable.key)
+      @category_item_recordings = category_item_recordings_for(@category_group_recording, @category_item_capability)
+      orderable_enabled = RecordingStudioCategorisable::OrderableSupport.orderable_enabled?(@category_item_capability)
+      @orderable_items = orderable_enabled && orderable_storage_available?
+      @reorder_mode = @orderable_items && params[:reorder].to_s == "true"
+
+      if orderable_enabled && !@orderable_items
+        flash.now[:alert] = "Reordering is unavailable until recording_studio_orderable migrations are run."
+      end
+
       @can_edit_group = editable_from_capability?(@category_group_recording.recordable.key)
       @can_create_items = item_create_allowed?(@category_item_capability)
       @can_edit_items = item_update_allowed?(@category_item_capability)
       @can_delete_items = item_delete_allowed?(@category_item_capability)
+    end
+
+    def reorder_items
+      capability = category_item_capability_for(@category_group_recording.recordable.key)
+      unless RecordingStudioCategorisable::OrderableSupport.orderable_enabled?(capability)
+        raise UnauthorizedError, "Category item changes are not allowed for: orderable"
+      end
+
+      unless orderable_storage_available?
+        render json: {
+          ok: false,
+          error: "Reordering is unavailable until recording_studio_orderable migrations are run."
+        }, status: :unprocessable_entity
+        return
+      end
+
+      ordered_recording_ids = Array(params[:ordered_recording_ids]).map(&:to_s)
+      group_key = @category_group_recording.recordable.key
+      order_group_key = RecordingStudioCategorisable::OrderableSupport.order_group_key_for(group_key)
+
+      RecordingStudioCategorisable::OrderableSupport.ensure_category_group_ordering!(group_key)
+      order_record = @category_group_recording.find_or_create_recording_order!(
+        order_group_key,
+        actor: Current.actor,
+        owner: nil
+      )
+      order_record.reorder!(ordered_recording_ids: ordered_recording_ids, actor: Current.actor)
+
+      render json: { ok: true }
+    rescue UnauthorizedError => e
+      render json: { ok: false, error: e.message }, status: :forbidden
+    rescue StandardError => e
+      render json: { ok: false, error: e.message }, status: :unprocessable_entity
     end
 
     def new
@@ -46,8 +81,7 @@ module RecordingStudioCategorisable
     end
 
     def create
-      parent_recording = selected_parent_recording(default_parent: current_root_recording)
-      category_group_recording = create_category_group_recording(parent_recording)
+      category_group_recording = create_category_group_recording
 
       redirect_to category_group_path(category_group_recording), notice: "Category group created."
     rescue ActiveRecord::RecordInvalid => e
@@ -62,9 +96,7 @@ module RecordingStudioCategorisable
 
     def update
       capability = category_group_capability_for(@category_group_recording.recordable.key)
-      parent_recording = selected_parent_recording(default_parent: @category_group_recording.parent_recording)
-      validate_parent_recording!(parent_recording)
-      ensure_group_update_allowed!(parent_recording)
+      ensure_group_update_allowed!
 
       @category_group_recording.class.transaction do
         group = @category_group_recording.recordable
@@ -89,7 +121,6 @@ module RecordingStudioCategorisable
           updated_at: Time.current
         )
 
-        @category_group_recording.update!(parent_recording: parent_recording)
       end
 
       redirect_to category_group_path(@category_group_recording), notice: "Category group updated."
@@ -120,10 +151,10 @@ module RecordingStudioCategorisable
       validate_unique_key!(group, exclude_recording_id: exclude_recording_id) if validate_unique_key
     end
 
-    def create_category_group_recording(parent_recording)
+    def create_category_group_recording
       current_root_recording.record(
         CategoryGroup,
-        parent_recording: parent_recording
+        parent_recording: current_root_recording
       ) do |group|
         assign_category_group_attributes(group)
       end
@@ -131,48 +162,6 @@ module RecordingStudioCategorisable
 
     def category_group_params(allowed_attributes: %i[name key description])
       params.require(:category_group).permit(*allowed_attributes)
-    end
-
-    def raw_category_group_params
-      params.fetch(:category_group, ActionController::Parameters.new)
-    end
-
-    def selected_parent_recording(default_parent: current_root_recording)
-      group_params = raw_category_group_params
-      return default_parent unless group_params.key?(:parent_recording_id)
-
-      requested_parent_id = group_params[:parent_recording_id].presence
-      return current_root_recording if requested_parent_id.blank?
-
-      active_recordings_scope(
-        current_root_recording.recordings_query(include_children: true)
-      )
-        .includes(:parent_recording)
-        .find(requested_parent_id)
-    end
-
-    def validate_parent_recording!(parent_recording)
-      return unless invalid_parent_recording?(parent_recording)
-
-      category_group = @category_group_recording.recordable.dup
-      category_group.assign_attributes(category_group_params)
-      category_group.errors.add(
-        :base,
-        "Category groups cannot be moved under themselves or their descendants"
-      )
-      raise ActiveRecord::RecordInvalid, category_group
-    end
-
-    def invalid_parent_recording?(parent_recording)
-      current_recording = parent_recording
-
-      while current_recording.present?
-        return true if current_recording.id == @category_group_recording.id
-
-        current_recording = current_recording.parent_recording
-      end
-
-      false
     end
 
     def set_category_group_recording
@@ -198,7 +187,7 @@ module RecordingStudioCategorisable
       raise ActiveRecord::RecordInvalid, group
     end
 
-    def ensure_group_update_allowed!(parent_recording)
+    def ensure_group_update_allowed!
       capability = category_group_capability_for(@category_group_recording.recordable.key)
       return unless capability
 
@@ -212,9 +201,6 @@ module RecordingStudioCategorisable
         :allow, :update_description
       )
       disallowed_changes << :key if requested_group.key != current_group.key
-      disallowed_changes << :parent_recording_id if parent_recording.id != @category_group_recording.parent_recording_id && !capability.dig(
-        :allow, :move
-      )
 
       return if disallowed_changes.empty?
 
@@ -251,7 +237,76 @@ module RecordingStudioCategorisable
       return true if capability.blank?
 
       allow = capability.fetch(:allow, {}).to_h
-      allow[:update_name] || allow[:update_position] || allow[:update_key] || allow[:update_description]
+      allow[:update_name] || allow[:orderable] || allow[:update_key] || allow[:update_description]
+    end
+
+    def category_item_recordings_for(group_recording, capability)
+      if RecordingStudioCategorisable::OrderableSupport.orderable_enabled?(capability) && orderable_storage_available?
+        ordered_recordings = ordered_category_items_with_recovery(
+          group_recording,
+          group_recording.recordable.key
+        )
+
+        return ordered_recordings.select do |recording|
+          recording.recordable.present? && recording.trashed_at.nil?
+        end
+      end
+
+      active_recordings_scope(
+        group_recording.child_recordings.of_type(CategoryItem)
+      ).includes(:recordable)
+        .sort_by { |recording| [recording.recordable.name.to_s.downcase, recording.recordable.key.to_s] }
+    end
+
+    def ordered_category_items_with_recovery(group_recording, group_key)
+      retried = false
+
+      begin
+        RecordingStudioCategorisable::OrderableSupport.ordered_category_items_for(group_recording, group_key)
+      rescue StandardError => e
+        raise unless duplicate_order_error?(e) && !retried
+
+        retried = true
+        recover_duplicate_default_order_records!(group_recording, group_key)
+        retry
+      end
+    end
+
+    def duplicate_order_error?(error)
+      error.class.name.to_s.end_with?("DuplicateOrderError")
+    end
+
+    def recover_duplicate_default_order_records!(group_recording, group_key)
+      return unless defined?(::RecordingStudio::RecordingStudioOrder)
+
+      order_group_key = RecordingStudioCategorisable::OrderableSupport.order_group_key_for(group_key)
+      duplicates = ::RecordingStudio::RecordingStudioOrder
+                   .where(
+                     parent_recording_id: group_recording.id,
+                     group_key: order_group_key,
+                     owner_type: nil,
+                     owner_id: nil
+                   )
+                   .where("COALESCE(BTRIM(name), '') = ''")
+                   .order(updated_at: :desc, created_at: :desc, id: :desc)
+                   .to_a
+
+      return if duplicates.size <= 1
+
+      keep_order = duplicates.shift
+      drop_ids = duplicates.map(&:id)
+      ::RecordingStudio::RecordingStudioOrder.where(id: drop_ids).delete_all
+
+      Rails.logger.warn(
+        "[RecordingStudioCategorisable] Removed #{drop_ids.size} duplicate order rows for " \
+        "parent=#{group_recording.id} group_key=#{order_group_key}. Kept=#{keep_order.id}"
+      )
+    end
+
+    def orderable_storage_available?
+      ActiveRecord::Base.connection.data_source_exists?("recording_studio_recording_studio_orders")
+    rescue StandardError
+      false
     end
 
     def item_delete_allowed?(capability)
@@ -262,13 +317,12 @@ module RecordingStudioCategorisable
 
     def editable_fields_for(category_group_recording)
       capability = category_group_capability_for(category_group_recording.recordable.key)
-      return { name: true, key: false, description: true, move: true } unless capability
+      return { name: true, key: false, description: true } unless capability
 
       {
         name: capability.dig(:allow, :rename),
         key: false,
-        description: capability.dig(:allow, :update_description),
-        move: capability.dig(:allow, :move)
+        description: capability.dig(:allow, :update_description)
       }
     end
 
@@ -331,8 +385,8 @@ module RecordingStudioCategorisable
           recordable_type: RecordingStudioCategorisable::CategoryItem.name
         )
       ).reorder(nil)
-       .group(:parent_recording_id)
-       .count
+        .group(:parent_recording_id)
+        .count
     end
   end
 end

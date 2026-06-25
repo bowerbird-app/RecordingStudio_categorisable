@@ -2,11 +2,11 @@
 
 require "test_helper"
 
-unless defined?(::ActiveRecord)
+unless Object.const_defined?(:ActiveRecord)
   module ::ActiveRecord
     class Base
-      def self.connection
-        @connection
+      class << self
+        attr_reader :connection
       end
     end
   end
@@ -100,7 +100,7 @@ class EngineTest < Minitest::Test
     recording_studio_module = Module.new
     calls = []
     declarations = []
-    configuration = Struct.new(:recordable_types).new(["Workspace", "Page"])
+    configuration = Struct.new(:recordable_types).new(%w[Workspace Page])
     recording_studio_module.define_singleton_method(:configuration) do
       configuration
     end
@@ -150,8 +150,8 @@ class EngineTest < Minitest::Test
 
   def test_seed_categories_from_config_filters_definitions_per_root_type
     RecordingStudioCategorisable.category_definitions = [
-      { key: "page-status", name: "Page Status" },
-      { key: "color", name: "Color" }
+      { group_key: "page-status", group_name: "Page Status" },
+      { group_key: "color", group_name: "Color" }
     ]
     RecordingStudioCategorisable.configuration.enable_category_group(
       key: "page-status",
@@ -197,7 +197,7 @@ class EngineTest < Minitest::Test
 
     ActiveRecord::Base.stub(:connection, connection) do
       RecordingStudioCategorisable::Services::SeedCategories.stub(:call, lambda { |root_recording:, category_definitions:|
-        seed_calls << [root_recording.recordable_type, category_definitions.map { |definition| definition[:key] }]
+        seed_calls << [root_recording.recordable_type, category_definitions.map { |definition| definition[:group_key] }]
       }) do
         to_prepare_block.call
       end

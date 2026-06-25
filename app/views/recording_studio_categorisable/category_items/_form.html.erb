@@ -1,4 +1,4 @@
-<% editable_fields = local_assigns.fetch(:editable_fields, { name: true, description: true, position: true }) %>
+<% editable_fields = local_assigns.fetch(:editable_fields, { name: true, description: true }) %>
 <% editable_field_count = editable_fields.values.count(true) %>
 
 <%= form_with model: category_item, url: @category_item_recording ? category_group_category_item_path(@category_group_recording, @category_item_recording) : category_group_category_items_path(@category_group_recording) do |form| %>
@@ -28,20 +28,11 @@
       ) %>
     <% end %>
 
-    <% if editable_fields[:position] %>
-      <%= render FlatPack::TextInput::Component.new(
-        name: "category_item[position]",
-        label: "Position",
-        value: category_item.position,
-        type: "number"
-      ) %>
-    <% end %>
   </div>
 
   <div class="mt-6 flex flex-wrap gap-3">
     <% if @category_item_recording.blank? || editable_field_count.positive? %>
       <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
     <% end %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: category_group_path(@category_group_recording)) %>
   </div>
 <% end %>

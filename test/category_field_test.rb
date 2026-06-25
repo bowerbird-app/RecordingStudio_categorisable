@@ -81,8 +81,8 @@ class CategoryFieldTest < Minitest::Test
     )
 
     item_recordings = [
-      Struct.new(:id, :recordable).new("item-2", Struct.new(:position, :name).new(2, "Beta")),
-      Struct.new(:id, :recordable).new("item-1", Struct.new(:position, :name).new(1, "Alpha"))
+      Struct.new(:id, :recordable).new("item-2", Struct.new(:name, :key).new("Beta", "beta")),
+      Struct.new(:id, :recordable).new("item-1", Struct.new(:name, :key).new("Alpha", "alpha"))
     ]
 
     group_recording = build_group_recording("group-1", item_recordings)

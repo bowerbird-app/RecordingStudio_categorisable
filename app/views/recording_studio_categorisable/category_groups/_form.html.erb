@@ -1,4 +1,4 @@
-<% editable_fields = local_assigns.fetch(:editable_fields, { name: true, key: true, description: true, move: true }) %>
+<% editable_fields = local_assigns.fetch(:editable_fields, { name: true, key: true, description: true }) %>
 <% editable_field_count = editable_fields.values.count(true) %>
 
 <%= form_with model: category_group, url: @category_group_recording ? category_group_path(@category_group_recording) : category_groups_path do |form| %>
@@ -42,26 +42,11 @@
       ) %>
     <% end %>
 
-    <% if editable_fields[:move] %>
-      <% selected_parent_id = if @category_group_recording.present?
-                                params.dig(:category_group, :parent_recording_id).presence || @category_group_recording.parent_recording_id
-                              else
-                                params.dig(:category_group, :parent_recording_id).presence || current_root_recording.id
-                              end %>
-      <div>
-        <label for="category_group_parent_recording_id" class="mb-1 block text-sm font-medium">Location</label>
-        <%= select_tag "category_group[parent_recording_id]",
-                       options_for_select(parent_recording_options, selected_parent_id),
-                       id: "category_group_parent_recording_id",
-                       class: "block w-full rounded-md border border-(--card-border-color) bg-[var(--surface-page-background-color)] px-3 py-2 text-sm" %>
-      </div>
-    <% end %>
   </div>
 
   <div class="mt-6 flex flex-wrap gap-3">
     <% if @category_group_recording.blank? || editable_field_count.positive? %>
       <%= render FlatPack::Button::Component.new(text: submit_text, style: :primary, type: "submit") %>
     <% end %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", style: :ghost, url: @category_group_recording ? category_group_path(@category_group_recording) : category_groups_path) %>
   </div>
 <% end %>

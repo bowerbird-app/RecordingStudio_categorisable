@@ -7,7 +7,7 @@ module RecordingStudioCategorisable
     before_action :set_usage_report, only: %i[edit destroy]
 
     def new
-      @category_item = CategoryItem.new(position: next_position)
+      @category_item = CategoryItem.new
     end
 
     def create
@@ -67,17 +67,7 @@ module RecordingStudioCategorisable
     end
 
     def category_item_params
-      params.require(:category_item).permit(:name, :key, :description, :position)
-    end
-
-    def next_position
-      active_recordings_scope(
-        @category_group_recording.child_recordings.of_type(CategoryItem)
-      )
-        .includes(:recordable)
-        .map { |recording| recording.recordable.position.to_i }
-        .max
-        .to_i + 1
+      params.require(:category_item).permit(:name, :key, :description)
     end
 
     def set_category_group_recording
@@ -123,8 +113,6 @@ module RecordingStudioCategorisable
       disallowed_changes << :description if requested_item.description != current_item.description && !capability.dig(
         :allow, :update_description
       )
-      disallowed_changes << :position if requested_item.position != current_item.position && !capability.dig(:allow,
-                                                                                                             :update_position)
       disallowed_changes << :key if requested_item.key != current_item.key && !capability.dig(:allow, :update_key)
 
       return if disallowed_changes.empty?
@@ -161,12 +149,11 @@ module RecordingStudioCategorisable
         root_recordable_type: current_root_recording.recordable_type
       )
 
-      return { name: true, description: true, position: true } if capability.blank?
+      return { name: true, description: true } if capability.blank?
 
       {
         name: capability.dig(:allow, :update_name),
-        description: capability.dig(:allow, :update_description),
-        position: capability.dig(:allow, :update_position)
+        description: capability.dig(:allow, :update_description)
       }
     end
   end

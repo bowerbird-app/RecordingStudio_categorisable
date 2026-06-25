@@ -222,12 +222,6 @@ The gem can count where category items are used. If an item or group is still in
 
 Studio analogy: do not throw away a label card that active sessions still depend on.
 
-### Cyclic move protection for groups
-
-When moving groups, the controller prevents moving a group under itself (or one of its descendants).
-
-Studio analogy: you cannot place a crate inside itself.
-
 ### Slug uniqueness in a root
 
 Groups with the same slug under one root are rejected to avoid ambiguous lookups.
@@ -262,6 +256,6 @@ Groups with the same slug under one root are rejected to avoid ambiguous lookups
 4. Load category fields in controller for the form.
 5. Sanitize params and then write category values.
 6. Handle InvalidCategorySelectionError and re-render form with errors.
-7. Verify delete/move behavior for groups and items in the UI.
+7. Verify delete behavior for groups and items in the UI.
 
 If you can explain those 7 steps, you already understand the gem well enough to build with it.

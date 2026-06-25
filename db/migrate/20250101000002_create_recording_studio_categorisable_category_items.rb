@@ -6,13 +6,11 @@ class CreateRecordingStudioCategorisableCategoryItems < ActiveRecord::Migration[
       t.string :name, null: false
       t.string :slug, null: false
       t.text :description
-      t.integer :position, default: 0, null: false
 
       t.timestamps
     end
 
     add_index :recording_studio_categorisable_category_items, :slug
-    add_index :recording_studio_categorisable_category_items, :position
     add_index :recording_studio_categorisable_category_items, :name
   end
 end

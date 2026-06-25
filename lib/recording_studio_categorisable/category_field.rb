@@ -88,7 +88,7 @@ module RecordingStudioCategorisable
       group_recording = resolve_group_recording(root_recording: root_recording, recordable: recordable)
       item_recordings = category_item_recordings_for(group_recording)
 
-      sort_item_recordings(item_recordings)
+      sort_item_recordings(item_recordings, group_recording: group_recording, root_recording: root_recording)
     end
 
     private
@@ -114,11 +114,27 @@ module RecordingStudioCategorisable
       raise ArgumentError, "selection must be one of: #{SELECTIONS.join(', ')}"
     end
 
-    def sort_item_recordings(item_recordings)
+    def sort_item_recordings(item_recordings, group_recording:, root_recording:)
+      root_recordable_type = root_recording&.respond_to?(:recordable_type) ? root_recording.recordable_type : nil
+
+      capability = RecordingStudioCategorisable.configuration.category_item_capability_for(
+        category_group_key,
+        root_recordable_type: root_recordable_type
+      )
+
+      if group_recording && RecordingStudioCategorisable::OrderableSupport.orderable_enabled?(capability)
+        ordered_recordings = RecordingStudioCategorisable::OrderableSupport.ordered_category_items_for(
+          group_recording,
+          category_group_key
+        )
+
+        return ordered_recordings.select { |recording| recording.recordable.present? && recording.trashed_at.nil? }
+      end
+
       item_recordings.sort_by do |item_recording|
         [
-          item_recording.recordable.position || 0,
-          item_recording.recordable.name.to_s.downcase
+          item_recording.recordable.name.to_s.downcase,
+          item_recording.recordable.key.to_s
         ]
       end
     end
@@ -131,8 +147,8 @@ module RecordingStudioCategorisable
         cache[group_recording.id] = RecordingStudioCategorisable::RecordingVisibility.active_scope(
           group_recording.child_recordings.of_type(RecordingStudioCategorisable::CategoryItem)
         )
-          .includes(:recordable)
-          .to_a
+                                                                                     .includes(:recordable)
+                                                                                     .to_a
       end
     end
 
@@ -144,10 +160,10 @@ module RecordingStudioCategorisable
       end
 
       grouped_recordings = root_recording
-        .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
-        .yield_self { |scope| RecordingStudioCategorisable::RecordingVisibility.active_scope(scope) }
-        .includes(:recordable)
-        .group_by { |recording| recording.recordable.key.to_s }
+                           .recordings_query(include_children: true, type: RecordingStudioCategorisable::CategoryGroup)
+                           .then { |scope| RecordingStudioCategorisable::RecordingVisibility.active_scope(scope) }
+                           .includes(:recordable)
+                           .group_by { |recording| recording.recordable.key.to_s }
 
       root_recording.instance_variable_set(GROUP_RECORDINGS_CACHE_IVAR, grouped_recordings)
     end

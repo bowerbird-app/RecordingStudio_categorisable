@@ -151,7 +151,7 @@ module RecordingStudioCategorisable
       #
       # @return [Boolean]
       def hooks_enabled?
-        defined?(RecordingStudioCategorisable) &&
+        Object.const_defined?(:RecordingStudioCategorisable) &&
           RecordingStudioCategorisable.respond_to?(:configuration) &&
           RecordingStudioCategorisable.configuration.respond_to?(:hooks)
       end

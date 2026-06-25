@@ -2,15 +2,18 @@
 
 require "test_helper"
 
-unless defined?(::ActiveRecord)
+unless Object.const_defined?(:ActiveRecord)
   module ::ActiveRecord
-    class RecordInvalid < StandardError
-      attr_reader :record
+  end
+end
 
-      def initialize(record)
-        @record = record
-        super("Record invalid")
-      end
+unless ActiveRecord.const_defined?(:RecordInvalid)
+  class ::ActiveRecord::RecordInvalid < StandardError
+    attr_reader :record
+
+    def initialize(record)
+      @record = record
+      super("Record invalid")
     end
   end
 end
@@ -18,8 +21,15 @@ end
 class SeedCategoriesTest < Minitest::Test
   def setup
     # Ensure model constants are stubbed in unit test context
-    RecordingStudioCategorisable.const_set(:CategoryGroup, Class.new) unless RecordingStudioCategorisable.const_defined?(:CategoryGroup, false)
-    RecordingStudioCategorisable.const_set(:CategoryItem, Class.new) unless RecordingStudioCategorisable.const_defined?(:CategoryItem, false)
+    unless RecordingStudioCategorisable.const_defined?(
+      :CategoryGroup, false
+    )
+      RecordingStudioCategorisable.const_set(:CategoryGroup,
+                                             Class.new)
+    end
+    RecordingStudioCategorisable.const_set(:CategoryItem, Class.new) unless RecordingStudioCategorisable.const_defined?(
+      :CategoryItem, false
+    )
 
     @created_groups = []
     @created_items = []
@@ -35,7 +45,7 @@ class SeedCategoriesTest < Minitest::Test
       end
 
       define_method(:record) do |recordable_type, **, &block|
-        recordable = Struct.new(:key, :name, :description, :position).new
+        recordable = Struct.new(:key, :name, :description).new
         block.call(recordable)
 
         child_items = []
@@ -75,7 +85,7 @@ class SeedCategoriesTest < Minitest::Test
     RecordingStudioCategorisable::Services::SeedCategories.call(
       root_recording: root,
       category_definitions: [
-        { key: "page-status", name: "Page Status", description: "Desc" }
+        { group_key: "page-status", group_name: "Page Status", group_description: "Desc" }
       ]
     )
 
@@ -90,7 +100,7 @@ class SeedCategoriesTest < Minitest::Test
     RecordingStudioCategorisable::Services::SeedCategories.call(
       root_recording: root,
       category_definitions: [
-        { key: "page-status", name: "Page Status" }
+        { group_key: "page-status", group_name: "Page Status" }
       ]
     )
 
@@ -104,7 +114,7 @@ class SeedCategoriesTest < Minitest::Test
     RecordingStudioCategorisable::Services::SeedCategories.call(
       root_recording: root,
       category_definitions: [
-        { key: "page-status", name: "Page Status" }
+        { group_key: "page-status", group_name: "Page Status" }
       ]
     )
 
@@ -119,7 +129,7 @@ class SeedCategoriesTest < Minitest::Test
     RecordingStudioCategorisable::Services::SeedCategories.call(
       root_recording: root,
       category_definitions: [
-        { key: "page-status", name: "Page Status" }
+        { group_key: "page-status", group_name: "Page Status" }
       ]
     )
 
@@ -129,7 +139,9 @@ class SeedCategoriesTest < Minitest::Test
   def test_duplicate_group_key_error_is_treated_as_already_seeded
     root = build_root(groups: [])
     root.define_singleton_method(:record) do |recordable_type, parent_recording: nil, &block|
-      return super(recordable_type, parent_recording: parent_recording, &block) unless recordable_type == RecordingStudioCategorisable::CategoryGroup
+      unless recordable_type == RecordingStudioCategorisable::CategoryGroup
+        return super(recordable_type, parent_recording: parent_recording, &block)
+      end
 
       errors = Object.new
       errors.define_singleton_method(:of_kind?) do |attribute, error_type|
@@ -145,7 +157,7 @@ class SeedCategoriesTest < Minitest::Test
     RecordingStudioCategorisable::Services::SeedCategories.call(
       root_recording: root,
       category_definitions: [
-        { key: "page-status", name: "Page Status" }
+        { group_key: "page-status", group_name: "Page Status" }
       ]
     )
 
@@ -159,11 +171,11 @@ class SeedCategoriesTest < Minitest::Test
       root_recording: root,
       category_definitions: [
         {
-          key: "page-status",
-          name: "Page Status",
+          group_key: "page-status",
+          group_name: "Page Status",
           items: [
-            { key: "draft", name: "Draft", position: 1 },
-            { key: "published", name: "Published", position: 2 }
+            { key: "draft", name: "Draft" },
+            { key: "published", name: "Published" }
           ]
         }
       ]
@@ -192,10 +204,10 @@ class SeedCategoriesTest < Minitest::Test
       root_recording: root,
       category_definitions: [
         {
-          key: "page-status",
-          name: "Page Status",
+          group_key: "page-status",
+          group_name: "Page Status",
           items: [
-            { key: "draft", name: "Draft", position: 1 }
+            { key: "draft", name: "Draft" }
           ]
         }
       ]
@@ -222,10 +234,10 @@ class SeedCategoriesTest < Minitest::Test
       root_recording: root,
       category_definitions: [
         {
-          key: "page-topics",
-          name: "Page Topics",
+          group_key: "page-topics",
+          group_name: "Page Topics",
           items: [
-            { key: "launch", name: "Launch", position: 3 }
+            { key: "launch", name: "Launch" }
           ]
         }
       ]
@@ -251,9 +263,9 @@ class SeedCategoriesTest < Minitest::Test
     RecordingStudioCategorisable::Services::SeedCategories.call(
       root_recording: root,
       category_definitions: [
-        { key: "", name: "Bad" },
-        { key: "good", name: "" },
-        { key: "real", name: "Real" }
+        { group_key: "", group_name: "Bad" },
+        { group_key: "good", group_name: "" },
+        { group_key: "real", group_name: "Real" }
       ]
     )
 

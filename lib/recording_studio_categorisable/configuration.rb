@@ -69,8 +69,6 @@ module RecordingStudioCategorisable
           allow,
           defaults: {
             rename: false,
-            reorder: false,
-            move: false,
             update_description: false,
             update_key: false
           }
@@ -127,11 +125,15 @@ module RecordingStudioCategorisable
             create: false,
             update_name: false,
             update_description: false,
-            update_position: false,
+            orderable: false,
             delete: false
           }
         )
       }.merge(options.compact)
+
+      if RecordingStudioCategorisable::OrderableSupport.orderable_enabled?(capability)
+        RecordingStudioCategorisable::OrderableSupport.ensure_category_group_ordering!(normalized_group_key)
+      end
 
       category_item_capabilities[normalized_group_key] = capability
       return unless normalized_root_type.present?
@@ -200,7 +202,7 @@ module RecordingStudioCategorisable
       normalized_root_type = normalize_recordable_type(root_recordable_type)
 
       definitions.select do |definition|
-        expected_group = expected_category_groups[definition[:key].to_s]
+        expected_group = expected_category_groups[definition[:group_key].to_s]
         next false if expected_group.blank?
 
         allowed_root_types = Array(expected_group[:root_recordable_types]).map(&:to_s)
