@@ -265,6 +265,42 @@ class CategoryManagementTest < ActionDispatch::IntegrationTest
     )
   end
 
+  test "brief update is blocked when required brief reference configuration is missing" do
+    brief_recording = @root_recording.recordings_query(type: Brief).includes(:recordable).first
+    status_before = brief_recording.recordable.status_category_item_recording_id
+
+    registration = RecordingStudioCategorisable.configuration.registration_for(Brief)
+    filtered_fields = registration.fields.reject { |field| field.attribute_name == :status_category_item_recording_id }
+    registration.instance_variable_set(:@fields, filtered_fields)
+
+    patch "/briefs/#{brief_recording.id}", params: {
+      brief: {
+        title: "Blocked Brief Update",
+        body: brief_recording.recordable.body,
+        status_category_item_recording_id: @published_item_recording.id
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "missing required category reference configuration"
+    assert_equal status_before, brief_recording.reload.recordable.status_category_item_recording_id
+  end
+
+  test "brief update rejects unexpected category attributes" do
+    brief_recording = @root_recording.recordings_query(type: Brief).includes(:recordable).first
+
+    patch "/briefs/#{brief_recording.id}", params: {
+      brief: {
+        title: "Unexpected category attribute",
+        body: brief_recording.recordable.body,
+        rogue_category_item_recording_id: @published_item_recording.id
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "contains unexpected category attributes"
+  end
+
   test "category groups index hides edit when capability is missing for a key" do
     status_recording = latest_visible_group_recording_for("page-status")
     RecordingStudioCategorisable.configuration.category_group_capabilities.delete("page-status")
