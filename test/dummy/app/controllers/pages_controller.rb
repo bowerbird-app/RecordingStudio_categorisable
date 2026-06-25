@@ -1,4 +1,9 @@
 class PagesController < ApplicationController
+  REQUIRED_CATEGORY_REFERENCES = {
+    status_category_item_recording_id: "page-status",
+    topic_category_item_recording_ids: "page-topics"
+  }.freeze
+
   before_action :set_page_recording, only: %i[edit update]
 
   def index
@@ -11,6 +16,8 @@ class PagesController < ApplicationController
   end
 
   def create
+    ensure_required_category_references!
+    reject_unexpected_category_attributes!
     category_assignments = sanitized_category_assignments
 
     current_root_recording.record(Page) do |page|
@@ -36,6 +43,8 @@ class PagesController < ApplicationController
   end
 
   def update
+    ensure_required_category_references!
+    reject_unexpected_category_attributes!
     category_assignments = sanitized_category_assignments
 
     current_root_recording.revise(@page_recording) do |page|
@@ -75,7 +84,7 @@ class PagesController < ApplicationController
   end
 
   def category_fields
-    @category_fields_definitions ||= registration.fields
+    @category_fields_definitions ||= Array(registration&.fields)
   end
 
   def category_field_states(recordable)
@@ -101,5 +110,23 @@ class PagesController < ApplicationController
     category_fields.each do |field|
       field.write(page, assignments.fetch(field.key))
     end
+  end
+
+  def ensure_required_category_references!
+    RecordingStudioCategorisable::CategoryAssignmentGuard.ensure_required_references!(
+      fields: category_fields,
+      required_references: REQUIRED_CATEGORY_REFERENCES
+    )
+  end
+
+  def reject_unexpected_category_attributes!
+    RecordingStudioCategorisable::CategoryAssignmentGuard.reject_unexpected_attributes!(
+      submitted_params: raw_page_params,
+      fields: category_fields
+    )
+  end
+
+  def raw_page_params
+    params.fetch(:page, ActionController::Parameters.new)
   end
 end

@@ -175,12 +175,6 @@ class ApplicationController < ActionController::Base
   def configure_categorisable_capabilities_for_current_root
     load_current_root_recordable_class_capabilities
 
-    if admin_root_selected?
-      apply_admin_reference_capabilities
-    else
-      apply_workspace_reference_capabilities
-    end
-
     auto_seed_category_groups_for_current_root
   end
 
@@ -189,57 +183,6 @@ class ApplicationController < ActionController::Base
     return if root_type.blank?
 
     root_type.safe_constantize
-  end
-
-  def apply_workspace_reference_capabilities
-    configure_reference_capabilities
-  end
-
-  def apply_admin_reference_capabilities
-    configure_reference_capabilities
-  end
-
-  def configure_reference_capabilities
-    page_class = "Page".safe_constantize
-    brief_class = "Brief".safe_constantize
-
-    return if page_class.blank? || brief_class.blank?
-
-    RecordingStudio.enable_capability(:categorisable, on: page_class)
-    RecordingStudio.set_capability_options(
-      :categorisable,
-      on: page_class,
-      references: [
-        {
-          attribute_name: :status_category_item_recording_id,
-          selection: :single,
-          category_group_key: "page-status",
-          label: "Status"
-        },
-        {
-          attribute_name: :topic_category_item_recording_ids,
-          selection: :multiple,
-          category_group_key: "page-topics",
-          label: "Topics"
-        }
-      ]
-    )
-    RecordingStudioCategorisable::Capabilities::Categorisable.apply_for(page_class)
-
-    RecordingStudio.enable_capability(:categorisable, on: brief_class)
-    RecordingStudio.set_capability_options(
-      :categorisable,
-      on: brief_class,
-      references: [
-        {
-          attribute_name: :status_category_item_recording_id,
-          selection: :single,
-          category_group_key: "page-status",
-          label: "Status"
-        }
-      ]
-    )
-    RecordingStudioCategorisable::Capabilities::Categorisable.apply_for(brief_class)
   end
 
   def apply_workspace_category_capabilities
