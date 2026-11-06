@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-06
+
+### Security
+- Lockfile-only bump to Rails 8.1.4.1 with rack >= 3.2.8, nokogiri >= 1.19.5, loofah >= 2.25.3, rails-html-sanitizer >= 1.7.2, and net-ssh >= 7.3.5 (dummy)
+
 ## [0.1.1] - 2026-04-28
 
 ### Changed
@@ -25,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/gem_template/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/bowerbird-app/gem_template/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/bowerbird-app/gem_template/releases/tag/v0.1.2
 [0.1.1]: https://github.com/bowerbird-app/gem_template/releases/tag/v0.1.1
 [0.1.0]: https://github.com/bowerbird-app/gem_template/releases/tag/v0.1.0
