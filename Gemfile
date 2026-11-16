@@ -2,7 +2,9 @@
 
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in gem_template.gemspec
+gem "flat_pack", github: "bowerbird-app/flatpack", tag: "v0.1.377"
+gem "recording_studio", github: "bowerbird-app/RecordingStudio", tag: "v7.2.0"
+
 gemspec
 
 gem "puma"
@@ -10,6 +12,7 @@ gem "sprockets-rails"
 
 group :development, :test do
   gem "debug"
+  gem "minitest-mock"
   gem "simplecov", require: false
 end
 

@@ -1,0 +1,28 @@
+<% content_for :title, "Add a category" %>
+<% content_for :subtitle, "Give it a name. Put it inside another category when you want a nest." %>
+
+<div class="mx-auto flex w-full max-w-xl flex-col gap-6">
+  <%= form_with url: categories_path, method: :post do %>
+    <div class="space-y-4">
+      <%= render FlatPack::TextInput::Component.new(
+        name: "name",
+        label: "Name",
+        required: true,
+        placeholder: "News"
+      ) %>
+
+      <%= render FlatPack::Select::Component.new(
+        name: "parent_recording_id",
+        label: "Inside",
+        options: @parents,
+        value: @parent_recording_id,
+        required: true
+      ) %>
+
+      <div class="flex flex-wrap gap-2">
+        <%= render FlatPack::Button::Component.new(text: "Add category", type: "submit", style: :primary) %>
+        <%= render FlatPack::Button::Component.new(text: "Cancel", style: :secondary, href: root_path) %>
+      </div>
+    </div>
+  <% end %>
+</div>

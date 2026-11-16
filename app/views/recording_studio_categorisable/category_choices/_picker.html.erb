@@ -1,0 +1,40 @@
+<%
+  root = recording.root_recording_or_self
+  options = recording_studio_category_options(root)
+  current = recording.respond_to?(:category_recording) ? recording.category_recording : nil
+  form_path = local_assigns[:form_path] || recording_category_path(recording)
+%>
+
+<%= render FlatPack::Card::Component.new do |card| %>
+  <% card.header do %>
+    <%= render FlatPack::PageTitle::Component.new(title: "Category", variant: :h3, class: "mb-0 pb-0") %>
+  <% end %>
+  <% card.body do %>
+    <% if options.empty? %>
+      <p class="text-sm">No categories yet. Add one, then come back and pick it.</p>
+    <% else %>
+      <%= form_with url: form_path, method: :patch do %>
+        <div class="space-y-4">
+          <%= render FlatPack::Select::Component.new(
+            name: "category_recording_id",
+            label: "Category",
+            options: options,
+            value: current&.id,
+            placeholder: "Choose a category",
+            searchable: true,
+            required: true
+          ) %>
+          <%= render FlatPack::Button::Component.new(text: "Save", type: "submit", style: :primary) %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <% if current %>
+      <div class="mt-4">
+        <%= form_with url: form_path, method: :delete do %>
+          <%= render FlatPack::Button::Component.new(text: "Remove category", type: "submit", style: :secondary) %>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

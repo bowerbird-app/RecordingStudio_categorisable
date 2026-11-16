@@ -1,0 +1,16 @@
+<% content_for :title, "Projects" %>
+<% content_for :subtitle, "File a project under one category." %>
+
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <div class="flex justify-end">
+    <%= render FlatPack::Button::Component.new(text: "Categories", style: :secondary, href: recording_studio_categorisable.root_path) %>
+  </div>
+
+  <%= render FlatPack::Table::Component.new(data: @projects, min_width: :none, class: "w-full") do |table| %>
+    <% table.column(title: "Name", html: ->(recording) { recording.recordable.name }) %>
+    <% table.column(title: "Category", html: ->(recording) { recording.category_recording&.recordable&.name || "—" }) %>
+    <% table.column(title: "", html: ->(recording) {
+      render(FlatPack::Button::Component.new(text: "Choose category", style: :primary, href: project_path(recording)))
+    }) %>
+  <% end %>
+</div>
