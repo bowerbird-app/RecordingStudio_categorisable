@@ -1,30 +1,20 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## 0.1.0
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+First release of `recording_studio_categorisable`.
 
-## [Unreleased]
+A host can enable categories on chosen types with `include RecordingStudio::Capabilities::Categorisable.to`. People can add a category, nest it under another category, file an item under one category, clear that choice, and filter to the items in a category.
 
-## [0.1.1] - 2026-04-28
+Requires `recording_studio` `>= 7.1` and `< 8.0`. The dummy app tracks Recording Studio 7.2.0 and Flatpack 0.1.377.
 
-### Changed
-- Bumped the dummy app FlatPack dependency from `0.1.2` to `0.1.33` and pinned it by tag in `test/dummy/Gemfile`
+Host migrations for this version:
 
-## [0.1.0] - 2025-12-04
+- `bin/rails generate recording_studio:migrations`, including Recording Studio 7.2's `index_rs_events_on_timeline` on `recording_studio_events (occurred_at, created_at, id)`.
+- `bin/rails generate recording_studio_accessible:migrations` when the host uses Accessible.
+- `bin/rails generate recording_studio_categorisable:migrations` for `recording_studio_categorisable_categories` and `recording_studio_categorisable_assignments`.
+- `bin/rails generate recording_studio:single_child_index` so the one-category-per-item rule is also enforced in the database.
 
-### Added
-- Initial release
-- Rails mountable engine structure
-- PostgreSQL with UUID primary keys support
-- TailwindCSS v4 integration
-- GitHub Codespaces devcontainer configuration
-- Docker Compose setup with PostgreSQL and Redis
-- Install generator for host applications
-- Comprehensive README and documentation
-- Basic test suite with Minitest
+An item has one category. The choice is a single child recording, and clearing it revises that child to a blank category. Nested categories are parent and child recordings. There is no join table.
 
-[Unreleased]: https://github.com/bowerbird-app/gem_template/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/bowerbird-app/gem_template/releases/tag/v0.1.1
-[0.1.0]: https://github.com/bowerbird-app/gem_template/releases/tag/v0.1.0
+This gem was never released before 0.1.0. The template pages, copied hooks, and copied service base class are gone.

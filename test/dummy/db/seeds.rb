@@ -1,30 +1,44 @@
-# This file should ensure the existence of records required to run the application in every environment (production,
-# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
+# frozen_string_literal: true
 
-# Create the admin user
-user = User.find_or_create_by!(email: "admin@admin.com") do |u|
-  u.password = "Password"
-  u.password_confirmation = "Password"
+category_named = lambda do |root, parent, name|
+  RecordingStudio::Recording.kept.where(
+    root_recording: root,
+    parent_recording: parent,
+    recordable_type: "RecordingStudioCategorisable::Category"
+  ).includes(:recordable).find { |recording| recording.recordable.name == name }
 end
 
-# Create the workspace recordable
+user = User.find_or_create_by!(email: "admin@admin.com") do |record|
+  record.password = "Password"
+  record.password_confirmation = "Password"
+end
+
 workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
-
-# Create the root recording
-root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
-  recordable: workspace,
-  parent_recording_id: nil
-)
-
-# Grant root-level admin access to the admin user
+previous_actor = Current.actor
 Current.actor = user
-access = RecordingStudio::Access.find_or_create_by!(actor: user, role: :admin)
-RecordingStudio::Recording.unscoped.find_or_create_by!(
-  root_recording_id: root_recording.id,
-  parent_recording_id: root_recording.id,
-  recordable: access
-)
+
+begin
+  root = RecordingStudio.create_root_recording!(workspace, actor: user)
+  result = RecordingStudioAccessible.bootstrap_owner_access!(recording: root, actor: user)
+  raise result.error if result.failure?
+
+  project = Project.find_or_create_by!(name: "Launch notes")
+  project_recording = RecordingStudio::Recording.kept.find_by(recordable: project) ||
+                      root.record(project, actor: user, parent_recording: root)
+
+  unfiled = Project.find_or_create_by!(name: "Unfiled notes")
+  RecordingStudio::Recording.kept.find_by(recordable: unfiled) ||
+    root.record(unfiled, actor: user, parent_recording: root)
+
+  news = category_named.call(root, root, "News") ||
+         RecordingStudioCategorisable.record_category(parent_recording: root, name: "News", actor: user)
+  product = category_named.call(root, news, "Product") ||
+            RecordingStudioCategorisable.record_category(parent_recording: news, name: "Product", actor: user)
+
+  project_recording.assign_category!(product, actor: user) if project_recording.category_recording.nil?
+ensure
+  Current.actor = previous_actor
+end
 
 puts "Seeded: admin@admin.com / Password"
-puts "Seeded: Workspace '#{workspace.name}' with root recording ##{root_recording.id}"
+puts "Seeded: workspace '#{workspace.name}'"

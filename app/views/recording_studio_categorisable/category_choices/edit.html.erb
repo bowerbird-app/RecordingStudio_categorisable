@@ -1,0 +1,6 @@
+<% content_for :title, "Choose a category" %>
+<% content_for :subtitle, "One category for this item. You can change it or clear it." %>
+
+<div class="mx-auto flex w-full max-w-xl flex-col gap-6">
+  <%= render "picker", recording: @recording %>
+</div>

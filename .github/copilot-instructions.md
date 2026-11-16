@@ -2,26 +2,18 @@
 
 ## Architecture
 
-- This repository is a Rails mountable engine template for building Recording Studio addons.
-- Preserve engine namespace isolation under `GemTemplate` unless the task is explicitly about renaming the gem.
-- Treat `docs/gem_template/` as architectural reference material. For current addon workflow, prefer the top-level README and the dummy app.
-- Keep changes small and scoped. Do not rewrite template surfaces unless the request requires it.
+- This repository is the Recording Studio categorisable addon, namespaced as `RecordingStudioCategorisable`.
+- Categories are Recording Studio recordings. A category choice is one child recording. Do not add a second tree or a join table.
+- Enable the capability with `include RecordingStudio::Capabilities::Categorisable.to`.
+- The README is the product guide. The dummy app is the host that proves it.
 
 ## UI Conventions
 
-- FlatPack is the default UI system for this repo.
-- When editing ERB views, prefer `render FlatPack::...` components over custom HTML when an equivalent component exists.
-- Prefer standardized and testable FlatPack ViewComponents over one-off ERB markup or custom JavaScript.
-- Keep custom markup limited to semantic wrappers or content that FlatPack does not cover.
+- Flatpack is the UI system. Prefer `render FlatPack::...` over custom markup.
+- People-facing copy says category, name, and save. It does not say recording, recordable, or capability.
 
 ## Testing
 
-- The standard root validation command is `bundle exec rake test` from the repository root.
-- If a change affects dummy app boot, assets, or migrations, also validate the dummy app setup the same way CI does.
-- Add focused regression tests for engine hooks, generators, Recording Studio integration points, and template UX changes.
-
-## Repo Conventions
-
-- Keep internal dependency assumptions intact unless the request explicitly asks to change private gem infrastructure.
-- Update docs when template behavior or setup steps change.
-- Prefer existing generator, service, and hook patterns over introducing a parallel abstraction.
+- `bundle exec rake test` runs the gem suite.
+- `bundle exec rake app:test` also runs the dummy suite.
+- `bundle exec rubocop` is the style check.

@@ -45,5 +45,10 @@ test/dummy/config/credentials/*.key
 *.gem
 pkg/
 
+# Generated coverage and local engine links
+/coverage/
+/test/dummy/coverage/
+/test/dummy/vendor/engines/
+
 # Rename script state
 .rename_state.yml

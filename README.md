@@ -1,133 +1,115 @@
-# GemTemplate
+# Recording Studio Categorisable
 
-Internal template for building Rails engine addons on top of RecordingStudio.
+File a project, page, or any other type under one category. Nest categories inside each other, then filter the list to what sits in a category or anything nested under it.
 
-## What's Included
+This is a Recording Studio addon. It needs Recording Studio 7.1 or newer, and below 8.0.
 
-- **RecordingStudio** gem installed and configured
-- **Devise** authentication with a pre-seeded admin user
-- **Workspace** root recording set up following RecordingStudio's Quick Start pattern
-- **FlatPack** UI component library for all views
-- **Dummy app** (`test/dummy/`) with a working login screen and FlatPack default sidebar layout for authenticated pages
+## Install
 
-## Quick Start
-
-### GitHub Codespaces (Recommended)
-
-1. Click **Code** → **Codespaces** → **Create codespace**
-2. Wait for setup to complete
-3. Run:
-   ```bash
-   cd test/dummy
-   bin/rails db:setup
-   bin/dev
-   ```
-4. Open port 3000 — you'll see the login screen
-
-The dummy app already includes FlatPack generator output (`flat_pack:install` and default sidebar layout scaffold) so authenticated pages render with the FlatPack sidebar shell by default.
-
-Dummy credentials (`test/dummy/config/credentials.yml.enc`) are encrypted with the shared RecordingStudio_* development master key. Set `RAILS_MASTER_KEY` or put that key in `test/dummy/config/master.key` (gitignored). Keep the encrypted file; do not generate a per-repo dummy key.
-
-### Login Credentials
-
-| Field    | Value             |
-|----------|-------------------|
-| Email    | admin@admin.com   |
-| Password | Password          |
-
-The login form is prefilled with these credentials for fast access.
-
-## Architecture
-
-### Root Recording Pattern
-
-This template follows RecordingStudio's root recording pattern:
-
-- **Workspace** is the top-level recordable
-- A root `RecordingStudio::Recording` wraps the Workspace
-- The admin user has root-level admin access via `RecordingStudio::Access`
-- `Current.actor` is set from `current_user` (Devise) in `ApplicationController`
-
-### Extending RecordingStudio
-
-To add new recordable types:
-
-1. Create your model (e.g., `Page`, `Comment`)
-2. Register it in `config/initializers/recording_studio.rb`:
-   ```ruby
-   RecordingStudio.configure do |config|
-     config.recordable_types = ["Workspace", "YourNewType"]
-   end
-   ```
-3. Leave optional behavior off by default, then opt into capabilities on the specific recordable models that need them:
-   ```ruby
-   class YourNewType < ApplicationRecord
-     include RecordingStudio::Capabilities::Movable.to("Workspace")
-     include RecordingStudio::Capabilities::Copyable.to("Workspace")
-   end
-   ```
-4. If you want per-device root persistence, wire it explicitly in your controller layer:
-   ```ruby
-   class ApplicationController < ActionController::Base
-     include RecordingStudio::Concerns::DeviceSessionConcern
-   end
-   ```
-5. Create recordings under the root:
-   ```ruby
-   root_recording.record(YourNewType) do |record|
-     record.title = "Example"
-   end
-   ```
-
-### Capabilities
-
-This template uses the current RecordingStudio approach: built-in capabilities are off by default and are enabled per recordable type by including the relevant module on the model.
-
-- `movable`
-- `copyable`
-
-Device session persistence is separate from capabilities. It is enabled only when you include `RecordingStudio::Concerns::DeviceSessionConcern` in your controller layer.
-
-Enable behavior intentionally where it belongs:
+Add the gems to the host `Gemfile`. `recording_studio` and `flat_pack` are GitHub gems.
 
 ```ruby
-class RecordingStudioPage < ApplicationRecord
-  include RecordingStudio::Capabilities::Movable.to("Workspace")
-  include RecordingStudio::Capabilities::Copyable.to("Workspace")
-end
+gem "recording_studio", github: "bowerbird-app/RecordingStudio", tag: "v7.2.0"
+gem "flat_pack", github: "bowerbird-app/flatpack", tag: "v0.1.377"
+gem "recording_studio_categorisable", github: "bowerbird-app/RecordingStudio_categorisable", tag: "v0.1.0"
+```
 
-class ApplicationController < ActionController::Base
-  include RecordingStudio::Concerns::DeviceSessionConcern
+Then:
+
+```bash
+bin/rails generate recording_studio_categorisable:install
+bin/rails generate recording_studio_categorisable:migrations
+bin/rails db:migrate
+bin/rails tailwindcss:build
+```
+
+The installer mounts the screens at `/categories`. Change the path with `--mount-path`.
+
+## Turn it on
+
+Pick the root types that can hold a top-level category:
+
+```ruby
+# config/initializers/recording_studio_categorisable.rb
+RecordingStudioCategorisable.configure do |config|
+  config.category_holder_types = ["Workspace"]
 end
 ```
 
-### FlatPack UI Components
+Register the two built-in types next to the host's own types:
 
-All views use FlatPack ViewComponents. Available components include:
+```ruby
+config.recordable_types = [
+  "Workspace",
+  "Project",
+  "RecordingStudioCategorisable::Category",
+  "RecordingStudioCategorisable::Assignment"
+]
+```
 
-- `FlatPack::Button::Component` — Buttons (`:primary`, `:secondary`, `:ghost`)
-- `FlatPack::Card::Component` — Cards (`:default`, `:elevated`, `:outlined`)
-- `FlatPack::Alert::Component` — Alerts (`:success`, `:error`, `:warning`, `:info`)
-- `FlatPack::Badge::Component` — Status badges
-- `FlatPack::Table::Component` — Data tables
-- `FlatPack::TextInput::Component`, `EmailInput`, `PasswordInput` — Form inputs
-- `FlatPack::Breadcrumb::Component` — Navigation breadcrumbs
-- `FlatPack::Navbar::Component` — Navigation sidebar
+Enable the capability on each type that can be filed. This is the only switch:
 
-See the [FlatPack README](https://github.com/bowerbird-app/flatpack) for full documentation.
+```ruby
+class Project < ApplicationRecord
+  recording_studio_recordable label: "Project", root: false, allowed_parent_types: ["Workspace"]
 
-## Tech Stack
+  include RecordingStudio::Capabilities::Categorisable.to
+end
+```
 
-| Component       | Version |
-|-----------------|---------|
-| Ruby            | 3.3+    |
-| Rails           | 8.1+    |
-| PostgreSQL      | 16      |
-| TailwindCSS     | 4       |
-| RecordingStudio | v0.1.0-alpha (pinned in `test/dummy/Gemfile`) |
-| FlatPack        | v0.1.33 (pinned in `test/dummy/Gemfile`) |
-| Devise          | latest  |
+A type that does not include it cannot take a category.
 
-## Documentation
+## What people can do
 
-The original gem template documentation is preserved in `docs/gem_template/` as architectural reference material. Use it as background on the engine conventions; the README and dummy app are the source of truth for the Recording Studio addon workflow.
+- Add a category under a holder, or under another category.
+- Save one category on an item, change it, or clear it.
+- Open a category and see the items filed there, including items in nested categories.
+
+Drop the picker onto a host screen:
+
+```erb
+<%= recording_studio_category_picker(recording) %>
+```
+
+The category list, the add form, and the filter live in this gem. Staff tools for the whole site stay in Recording Studio Admin.
+
+Writes go through Recording Studio (`record`, `revise`, and `log_event!`). When Accessible is installed, changing a category requires edit access on that item, and adding a category requires edit access on its parent. This gem does not add its own grant rules.
+
+## Host migrations
+
+Run these on a host that is new to this gem. Generate them. Do not paste them by hand.
+
+1. `bin/rails generate recording_studio:migrations`
+   Recording Studio 7.2 adds `index_rs_events_on_timeline` on `recording_studio_events (occurred_at, created_at, id)`.
+2. `bin/rails generate recording_studio_accessible:migrations` when the host uses Accessible.
+3. `bin/rails generate recording_studio_categorisable:migrations`
+   - `recording_studio_categorisable_categories` (`name`)
+   - `recording_studio_categorisable_assignments` (`category_recording_id`)
+4. `bin/rails generate recording_studio:single_child_index`
+   A category choice is one per item. The index matches that rule. The Ruby check still applies if you skip the index.
+
+Then `bin/rails db:migrate`.
+
+## One category
+
+An item has one category. That choice is a single child recording pointing at the category. Clearing it revises the choice to a blank category. Categories themselves are recordings, so a nest is a parent and a child. There is no second tree and no join table.
+
+## Upgrade
+
+0.1.0 is the first release. Nothing on `main` before this version shipped categories, and no host Gemfile referenced this gem.
+
+Hosts that were generated from the old addon template should drop the template pages migration, the copied hooks, and the copied service base class. Require `recording_studio_categorisable` and follow the install steps above. Core 7 also asks the host to set `config.authorize_write`, call `create_root_recording!` for a new root, and use `recording_studio_layout`.
+
+## Development
+
+The dummy app signs in as `admin@admin.com` / `Password`. It uses the shared Recording Studio master key. Do not commit `master.key`.
+
+```bash
+bundle install
+bundle install --gemfile test/dummy/Gemfile
+cd test/dummy && bin/rails db:prepare db:seed
+cd test/dummy && bin/rails tailwindcss:build
+bundle exec rake test
+bundle exec rubocop
+cd test/dummy && bin/rails test
+```

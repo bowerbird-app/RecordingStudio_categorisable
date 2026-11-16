@@ -1,0 +1,11 @@
+<% content_for :title, @recording.recordable.name %>
+<% content_for :subtitle, "Pick one category, or clear it." %>
+
+<div class="mx-auto flex w-full max-w-xl flex-col gap-6">
+  <div class="flex flex-wrap gap-2">
+    <%= render FlatPack::Button::Component.new(text: "Projects", style: :secondary, href: projects_path) %>
+    <%= render FlatPack::Button::Component.new(text: "Categories", style: :secondary, href: recording_studio_categorisable.root_path) %>
+  </div>
+
+  <%= recording_studio_category_picker(@recording) %>
+</div>

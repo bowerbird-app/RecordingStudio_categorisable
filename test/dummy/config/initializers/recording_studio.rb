@@ -1,24 +1,17 @@
 # frozen_string_literal: true
 
 RecordingStudio.configure do |config|
-  # Registered delegated_type recordables (strings or classes)
-  config.recordable_types = [ "Workspace" ]
-
-  # Actor resolver for events when no actor is explicitly supplied
+  config.recordable_types = [
+    "Workspace",
+    "Project",
+    "RecordingStudioCategorisable::Category",
+    "RecordingStudioCategorisable::Assignment"
+  ]
+  config.require_recordable_declarations = true
+  config.app_name = "Categories" if config.respond_to?(:app_name=)
   config.actor = -> { Current.actor }
-
-  # Emit ActiveSupport::Notifications events
+  config.authorize_write = ->(actor:, **) { actor.present? }
   config.event_notifications_enabled = true
-
-  # Idempotency behavior for log_event!
-  config.idempotency_mode = :return_existing # or :raise
-
-  # Include child recordings by default when trashing/restoring
-  config.include_children = false
-
-  # Recordable duplication strategy for revisions
+  config.idempotency_mode = :return_existing
   config.recordable_dup_strategy = :dup
-
-  # Built-in capabilities remain disabled until you opt a recordable type into
-  # them by including the relevant RecordingStudio capability module.
 end
